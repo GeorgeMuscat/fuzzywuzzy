@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "fuzzywuzzy"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pwntools = "4.11.0"
+pyelftools = "0.29"
+black = "23.9.1"
+tqdm = "4.66.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
