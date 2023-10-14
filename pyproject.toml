@@ -2,9 +2,10 @@
 name = "fuzzywuzzy"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Hamish Cox <h@mish.cx>"]
 license = "MIT"
 readme = "README.md"
+packages = [{ include = "fuzzer", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -12,8 +13,17 @@ pwntools = "4.11.0"
 pyelftools = "0.29"
 black = "23.9.1"
 tqdm = "4.66.1"
+pytest = "^7.4.2"
 
+[tool.poetry.scripts]
+fuzzywuzzy = 'fuzzer:cli'
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = "src"      # I hate python.
+testpaths = ["tests"]
+addopts = "--color=yes"
+xfail_strict = true
