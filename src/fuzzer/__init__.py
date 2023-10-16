@@ -1,10 +1,10 @@
 from pathlib import Path
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 import click
+import magic
 
-from .formats import BaseFormat
-from .mutations import BaseMutation
+from .hunters import MIME_TYPE_TO_HUNTERS
 
 
 @click.command()
@@ -21,15 +21,19 @@ from .mutations import BaseMutation
 )
 def cli(sample_input, binary, output_file):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
-    print("Hello world!")
-    print(sample_input, binary, output_file)
+    fuzz(binary, sample_input)
 
 
-def fuzz(
-    binary: Path, mutations: list[Type[BaseMutation]], formats: list[Type[BaseFormat]]
-) -> Optional[bytes]:
+def fuzz(binary: Path, sample_input) -> Optional[bytes]:
     """do the thing. idk if these params make sense and maybe we want a class for this idk."""
-    pass
+    sample_input = sample_input.read()
+    file_type = magic.from_buffer(sample_input, mime=True)
+    hunters = MIME_TYPE_TO_HUNTERS.get(file_type)
+
+    if hunters is None:
+        raise click.UsageError("sample_input is not a compatible file type.")
+
+    print("did thing", format)
 
 
 def sanity():
