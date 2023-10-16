@@ -1,8 +1,35 @@
-from .example import hello_world
+from pathlib import Path
+from typing import Optional, Type
+
+import click
+
+from .formats import BaseFormat
+from .mutations import BaseMutation
 
 
-def cli():
-    hello_world()
+@click.command()
+@click.argument("sample_input", type=click.File("rb"))
+@click.argument(
+    "binary",
+    type=click.Path(exists=True, executable=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "--output-file",
+    help="path to output file",
+    type=click.File("wb"),
+    default="bad.txt",
+)
+def cli(sample_input, binary, output_file):
+    """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
+    print("Hello world!")
+    print(sample_input, binary, output_file)
+
+
+def fuzz(
+    binary: Path, mutations: list[Type[BaseMutation]], formats: list[Type[BaseFormat]]
+) -> Optional[bytes]:
+    """do the thing. idk if these params make sense and maybe we want a class for this idk."""
+    pass
 
 
 def sanity():
