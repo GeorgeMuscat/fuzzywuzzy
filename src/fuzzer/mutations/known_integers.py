@@ -5,6 +5,8 @@ INTS = [
     0x0,
     0x1,
     -0x1,
+    100,
+    101,
     0x80000000,
     0x7FFFFFFF,
     *(2**i for i in range(1, 20)),
@@ -36,4 +38,4 @@ def known_integer_ascii_hex_with_prefix_mutation(
     sample_input: bytes,
 ) -> Iterator[bytes]:
     for i in INTS:
-        yield f"0x{i:x}".encode()
+        yield hex(i).encode()
