@@ -1,8 +1,11 @@
 from pathlib import Path
-from typing import Any, Optional, Type
+from typing import BinaryIO, Optional
 
 import click
 import magic
+
+from fuzzer.harness import Harness
+from fuzzer.utils import round_robin
 
 from .hunters import MIME_TYPE_TO_HUNTERS
 
@@ -21,19 +24,29 @@ from .hunters import MIME_TYPE_TO_HUNTERS
 )
 def cli(sample_input, binary, output_file):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
-    fuzz(binary, sample_input)
+    result = fuzz(binary, sample_input)
+    if result is not None:
+        click.echo("HOLY SHIT WE DID IT")
+        output_file.write(result)
 
 
-def fuzz(binary: Path, sample_input) -> Optional[bytes]:
-    """do the thing. idk if these params make sense and maybe we want a class for this idk."""
-    sample_input = sample_input.read()
-    file_type = magic.from_buffer(sample_input, mime=True)
-    hunters = MIME_TYPE_TO_HUNTERS.get(file_type)
+def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
+    sample_input = sample_input_file.read()
+    mime_type = magic.from_buffer(sample_input, mime=True)
+    hunters = MIME_TYPE_TO_HUNTERS.get(mime_type)
 
     if hunters is None:
-        raise click.UsageError("sample_input is not a compatible file type.")
+        # TODO: Don't use a CLI-specific error in a library function.
+        raise click.UsageError(
+            "sample_input_file does not contain data of a compatible format"
+        )
 
-    print("did thing", format)
+    harness = Harness(binary)
+
+    for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
+        result = harness.run(mutation)
+        if type(result) is int and result < 0:
+            return mutation
 
 
 def sanity():

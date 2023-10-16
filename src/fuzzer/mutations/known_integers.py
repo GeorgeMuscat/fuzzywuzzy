@@ -1,17 +1,19 @@
 from typing import Iterator
 
-INTS = [
-    0xFFFFFFFF,
-    0x0,
-    0x1,
-    -0x1,
-    100,
-    101,
-    0x80000000,
-    0x7FFFFFFF,
-    *(2**i for i in range(1, 20)),
-    *(2**i + 1 for i in range(1, 20)),
-]
+# Only include positive numbers (or a representation of a negative number),
+# since to_bytes throws if a negative is provided and I cbf figuring out a condition to set signed=True.
+INTS: list[int] = list(
+    {
+        *(i for i in range(0, 11)),  # 1 to 10
+        100,
+        101,
+        0x7FFFFFFF,  # INT_MAX
+        0x80000000,  # INT_MIN, 2^32
+        0xFFFFFFFF,  # UINT_MAX, -1
+        *(2**i for i in range(1, 32)),  # 2^i
+        *(2**i + 1 for i in range(1, 31)),  # 2^i + 1, skips 2^32 + 1 due to overflow
+    }
+)
 
 
 def known_integer_packed_le_mutation(sample_input: bytes) -> Iterator[bytes]:

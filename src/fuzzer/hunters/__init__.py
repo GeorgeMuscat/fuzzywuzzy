@@ -1,3 +1,9 @@
-from .whole_text import whole_text_hunter
+from typing import Callable, Iterator
 
-MIME_TYPE_TO_HUNTERS = {"text/plain": [whole_text_hunter]}
+from .plaintext import line_hunter, whole_text_hunter
+
+Hunter = Callable[[bytes], Iterator[bytes]]
+MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
+    "text/plain": [whole_text_hunter, line_hunter],
+    "application/octet-stream": [whole_text_hunter, line_hunter],
+}
