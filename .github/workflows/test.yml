@@ -17,8 +17,9 @@ jobs:
       - uses: actions/checkout@v3
       - name: Set up apt-get dependencies
         run: |
-          dpkg --add-architecture i386 && apt-get -y update
-          apt-get install -y libc6:i386 gcc-multilib g++-multilib
+          sudo dpkg --add-architecture i386
+          sudo apt-get -y update
+          sudo apt-get install -y libc6:i386 gcc-multilib g++-multilib
       - name: Set up Python 3.12
         uses: actions/setup-python@v3
         with:
