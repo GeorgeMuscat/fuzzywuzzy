@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-BINARIES_DIR = Path("tests", "binaries")
+BINARIES_DIR = Path("tests", "binaries", "fuzz_targets")
 
 
 def get_binary_test_cases():

@@ -1,6 +1,5 @@
-import io
 from pathlib import Path
-from subprocess import DEVNULL, PIPE, Popen
+from subprocess import DEVNULL, PIPE, Popen, TimeoutExpired
 
 TIMEOUT = 5
 
@@ -12,10 +11,9 @@ class Harness:
     def run(self, input: bytes):
         process = Popen(self.binary_path, stdin=PIPE, stdout=DEVNULL, stderr=DEVNULL)
 
-        process.communicate(input)
         try:
-            process.wait(TIMEOUT)
-        except TimeoutError:
+            process.communicate(input, timeout=TIMEOUT)
+        except TimeoutExpired:
             process.terminate()
             return "timeout"
 

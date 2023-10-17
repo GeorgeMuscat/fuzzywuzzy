@@ -1,7 +1,8 @@
+import time
 from pathlib import Path
 
 from fuzzer import fuzz
-from fuzzer.harness import Harness
+from fuzzer.harness import TIMEOUT, Harness
 
 
 def test_fuzz(binary_path: tuple[Path, Path]):
@@ -10,9 +11,22 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     binary, input = binary_path
     with open(input, "rb") as f:
         result = fuzz(binary, f)
-    assert result is not None
+    assert result is not None, "could not find bad input"
 
     harness = Harness(binary)
     return_code = harness.run(result)
     assert type(return_code) is int
     assert return_code < 0
+
+
+def test_hang_timeout():
+    """Tests that the harness stops processes that last beyond the timeout."""
+    hang_path = Path("tests", "binaries", "hang", "hang")
+
+    harness = Harness(hang_path)
+
+    start = time.time()
+    assert harness.run(b"") == "timeout"
+    end = time.time()
+
+    assert (end - start) > TIMEOUT
