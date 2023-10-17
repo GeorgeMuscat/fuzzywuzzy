@@ -23,7 +23,7 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     assert type(return_code) is int
     assert return_code < 0
 
-    assert (end - start) > FUZZING_TIMEOUT
+    assert (end - start) < FUZZING_TIMEOUT
 
 
 def test_hang_timeout():
