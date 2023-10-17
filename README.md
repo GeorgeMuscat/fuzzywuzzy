@@ -1,4 +1,5 @@
 # fuzzywuzzy
+[![Tests](https://github.com/GeorgeMuscat/fuzzywuzzy/actions/workflows/test.yml/badge.svg)](https://github.com/GeorgeMuscat/fuzzywuzzy/actions/workflows/test.yml)
 
 ## Setup
 - Install Python 3.12:
