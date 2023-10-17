@@ -28,9 +28,13 @@ def whole_text_hunter(sample_input: bytes) -> Iterator[bytes]:
         yield mutated_input
 
 
-def line_hunter(sample_input: bytes) -> Iterator[bytes]:
-    """Runs each mutator on each line of the sample input individually."""
-    lines = sample_input.split(b"\n")
-    for i, line in enumerate(lines):
-        for mutated_input in round_robin([mutator(line) for mutator in MUTATORS]):
-            yield b"\n".join(lines[:i] + [mutated_input] + lines[i + 1 :])
+def segment_hunter(sep: bytes):
+    """Runs each mutator on each segment of the sample input individually, based on a predefined set of delimiters."""
+
+    def hunter(sample_input: bytes) -> Iterator[bytes]:
+        segments = sample_input.split(sep)
+        for i, seg in enumerate(segments):
+            for mutated_input in round_robin([mutator(seg) for mutator in MUTATORS]):
+                yield sep.join(segments[:i] + [mutated_input] + segments[i + 1 :])
+
+    return hunter

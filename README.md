@@ -18,3 +18,6 @@ sudo apt-get install -y libc6:i386 gcc-multilib g++-multilib
 - Run command in venv: `poetry run`
 - Enter sub-shell (like `source venv/bin/activate`): `poetry shell`
 - Add dependency (don't use `pip`): `poetry add <pip package name>`
+
+## Running Tests
+To run all tests, run `pytest` (inside a Poetry shell, `poetry run pytest` outside).
