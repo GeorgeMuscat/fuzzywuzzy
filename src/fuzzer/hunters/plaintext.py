@@ -23,11 +23,13 @@ MUTATORS = [
 
 
 def whole_text_hunter(sample_input: bytes) -> Iterator[bytes]:
+    """Runs each mutator on the entire sample_input."""
     for mutated_input in round_robin([mutator(sample_input) for mutator in MUTATORS]):
         yield mutated_input
 
 
 def line_hunter(sample_input: bytes) -> Iterator[bytes]:
+    """Runs each mutator on each line of the sample input individually."""
     lines = sample_input.split(b"\n")
     for i, line in enumerate(lines):
         for mutated_input in round_robin([mutator(line) for mutator in MUTATORS]):
