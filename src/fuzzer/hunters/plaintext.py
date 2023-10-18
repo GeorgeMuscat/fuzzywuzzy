@@ -1,5 +1,6 @@
 from itertools import cycle
 from typing import Iterator
+from fuzzer.mutations.bitflip import flip_byte_mutation
 
 from fuzzer.mutations.buffer_overflow import buffer_overflow_mutation
 from fuzzer.mutations.known_integers import (
@@ -19,6 +20,7 @@ MUTATORS = [
     known_integer_ascii_hex_with_prefix_mutation,
     known_integer_packed_be_mutation,
     known_integer_packed_le_mutation,
+    flip_byte_mutation,
 ]
 
 
