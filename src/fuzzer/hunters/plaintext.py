@@ -11,6 +11,10 @@ from fuzzer.mutations.known_integers import (
     known_integer_packed_le_mutation,
 )
 
+from fuzzer.mutations.insert import random_insert_null_mutation
+
+from fuzzer.mutations.repeated_parts import repeat_last_segment_mutation
+
 from ..utils import round_robin
 
 MUTATORS = [
@@ -21,6 +25,8 @@ MUTATORS = [
     known_integer_packed_be_mutation,
     known_integer_packed_le_mutation,
     flip_byte_mutation,
+    random_insert_null_mutation,
+    repeat_last_segment_mutation
 ]
 
 
@@ -37,6 +43,6 @@ def segment_hunter(sep: bytes):
         segments = sample_input.split(sep)
         for i, seg in enumerate(segments):
             for mutated_input in round_robin([mutator(seg) for mutator in MUTATORS]):
-                yield sep.join(segments[:i] + [mutated_input] + segments[i + 1 :])
+                yield sep.join(segments[:i] + [mutated_input] + segments[i + 1:])
 
     return hunter
