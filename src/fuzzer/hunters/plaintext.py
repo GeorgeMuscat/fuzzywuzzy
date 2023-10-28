@@ -41,8 +41,17 @@ def segment_hunter(sep: bytes):
 
     def hunter(sample_input: bytes) -> Iterator[bytes]:
         segments = sample_input.split(sep)
+        round_robins: list[Iterator[bytes]] = []
         for i, seg in enumerate(segments):
-            for mutated_input in round_robin([mutator(seg) for mutator in MUTATORS]):
-                yield sep.join(segments[:i] + [mutated_input] + segments[i + 1:])
+            round_robins.append(round_robin([mutator(seg) for mutator in MUTATORS]))
+
+        i = 0
+        while len(round_robins) > 0:
+            mutated = next(round_robins[i], default=None)
+            if mutated is None:
+                round_robins.pop()
+            yield sep.join(segments[:i] + [mutated] + segments[i + 1:])
+            i += 1
+            i %= len(round_robins)
 
     return hunter
