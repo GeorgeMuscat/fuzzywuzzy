@@ -45,6 +45,7 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
 
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
+        print(mutation)
         if type(result) is int and result < 0:
             return mutation
 
