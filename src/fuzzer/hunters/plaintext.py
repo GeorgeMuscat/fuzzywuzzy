@@ -26,7 +26,7 @@ MUTATORS = [
     known_integer_packed_le_mutation,
     flip_byte_mutation,
     random_insert_null_mutation,
-    repeat_last_segment_mutation
+    repeat_last_segment_mutation,
 ]
 
 
@@ -36,7 +36,7 @@ def whole_text_hunter(sample_input: bytes) -> Iterator[bytes]:
         yield mutated_input
 
 
-def segment_hunter(sep: bytes):
+def segment_hunter(sep: bytes) -> Iterator[bytes]:
     """Runs each mutator on each segment of the sample input individually, based on a predefined set of delimiters."""
 
     def hunter(sample_input: bytes) -> Iterator[bytes]:
@@ -47,10 +47,10 @@ def segment_hunter(sep: bytes):
 
         i = 0
         while len(round_robins) > 0:
-            mutated = next(round_robins[i], default=None)
+            mutated = next(round_robins[i])
             if mutated is None:
                 round_robins.pop()
-            yield sep.join(segments[:i] + [mutated] + segments[i + 1:])
+            yield sep.join(segments[:i] + [mutated] + segments[i + 1 :])
             i += 1
             i %= len(round_robins)
 

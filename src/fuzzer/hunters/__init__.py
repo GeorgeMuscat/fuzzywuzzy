@@ -5,8 +5,8 @@ from .json import json_key_hunter, json_value_hunter
 
 Hunter = Callable[[bytes], Iterator[bytes]]
 MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
-    "text/plain": [whole_text_hunter],
-    "application/octet-stream": [whole_text_hunter],
+    "text/plain": [whole_text_hunter, segment_hunter(b"\n")],
+    "application/octet-stream": [whole_text_hunter, segment_hunter(b"\n")],
     "text/csv": [whole_text_hunter],
-    "application/json": [json_key_hunter, json_value_hunter]
+    "application/json": [json_key_hunter, json_value_hunter],
 }
