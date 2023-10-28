@@ -5,7 +5,9 @@ from fuzzer import fuzz
 from fuzzer.harness import TIMEOUT as HARNESS_TIMEOUT
 from fuzzer.harness import Harness
 
-FUZZING_TIMEOUT = 300
+
+MINUTE = 60  # certified Ham moment
+FUZZING_TIMEOUT = MINUTE * 3
 
 
 def test_fuzz(binary_path: tuple[Path, Path]):

@@ -1,7 +1,9 @@
-from typing import Iterator
+from typing import Iterator, TypeVar
+
+T = TypeVar('T')
 
 
-def round_robin[T](iterables: list[Iterator[T]]) -> Iterator[T]:
+def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
     # Create an infinite loop to keep iterating in a round-robin fashion
     while True:
         for it in iterables:
