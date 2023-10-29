@@ -2,24 +2,12 @@
 
 cd "$(dirname "$0")"
 
-sudo apt-get update
-sudo apt-get install -y software-properties-common
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-
 sudo dpkg --add-architecture i386
 sudo apt-get update
-sudo apt-get install -y python3.12 python3.12-dev python3.12-venv libc6:i386 gcc-multilib g++-multilib git libssl-dev libffi-dev build-essential curl
+sudo apt-get install -y python3 python3-dev python3-venv libc6:i386 gcc-multilib g++-multilib git libssl-dev libffi-dev build-essential curl
 
-if [ "$(python3.12 -V | grep -vE 3\.12)" ]; then
-    echo "Failed to install Python 3.12! Pls fix, thx melon."
-    exit 1
-fi
+curl -sSL https://bootstrap.pypa.io/get-pip.py | python3 -
+python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 
-python3.12 -m venv .venv
-source .venv/bin/activate
-
-curl -sSL https://bootstrap.pypa.io/get-pip.py | python3.12 -
-python3.12 -m pip install -r requirements.txt
-python3.12 -m pip install -e .
-
-deactivate
+# Why are you looking here?

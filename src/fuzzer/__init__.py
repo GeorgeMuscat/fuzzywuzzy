@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import BinaryIO, Optional
 
@@ -11,23 +12,26 @@ from .hunters import MIME_TYPE_TO_HUNTERS
 
 
 @click.command()
-@click.argument("sample_input", type=click.File("rb"))
 @click.argument(
     "binary",
     type=click.Path(exists=True, executable=True, dir_okay=False, path_type=Path),
 )
+@click.argument("sample_input", type=click.File("rb"))
 @click.option(
     "--output-file",
     help="path to output file",
     type=click.File("wb"),
     default="bad.txt",
 )
-def cli(sample_input, binary, output_file):
+def cli(binary, sample_input, output_file):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
     result = fuzz(binary, sample_input)
     if result is not None:
         click.echo("HOLY SHIT WE DID IT")
         output_file.write(result)
+        click.echo("Check your cwd for bad.txt")
+    else:
+        click.echo("We couldn't break the binary T_T")
 
 
 def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:

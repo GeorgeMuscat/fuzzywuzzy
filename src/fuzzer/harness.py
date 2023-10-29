@@ -1,7 +1,7 @@
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen, TimeoutExpired
 
-TIMEOUT = 5
+TIMEOUT = 1
 
 
 class Harness:
@@ -9,7 +9,9 @@ class Harness:
         self.binary_path = binary_path
 
     def run(self, input: bytes):
-        process = Popen(self.binary_path, stdin=PIPE, stdout=DEVNULL, stderr=DEVNULL)
+        process = Popen(
+            self.binary_path.absolute(), stdin=PIPE, stdout=DEVNULL, stderr=DEVNULL
+        )
 
         try:
             process.communicate(input, timeout=TIMEOUT)
