@@ -16,6 +16,8 @@ tqdm = "4.66.1"
 pytest = "^7.4.2"
 click = "^8.1.7"
 python-magic = "^0.4.27"
+makeelf = "^0.3.4"
+lief = "^0.13.2"
 
 [tool.poetry.scripts]
 fuzzywuzzy = 'fuzzer:cli'
