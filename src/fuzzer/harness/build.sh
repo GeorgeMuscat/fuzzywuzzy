@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc -Os -m32 -masm="intel" -fPIC -Wl,-shared -static-libgcc -s harness.c -o harness
+gcc -Os -m32 -masm="intel" -fPIC -shared -Wl,--no-undefined -rdynamic harness.c -o harness.so -ldl
