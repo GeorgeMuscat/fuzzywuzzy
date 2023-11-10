@@ -1,6 +1,6 @@
 from typing import Iterator, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
@@ -9,7 +9,7 @@ def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
         for it in iterables:
             try:
                 yield next(it)
-            except StopIteration:
+            except (StopIteration, RuntimeError):
                 # If an iterator is exhausted, remove it from the list
                 iterables = [i for i in iterables if i is not it]
                 if not iterables:
