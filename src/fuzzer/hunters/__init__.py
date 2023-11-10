@@ -9,4 +9,5 @@ MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
     "application/octet-stream": [whole_text_hunter, segment_hunter(b"\n")],
     "text/csv": [whole_text_hunter],
     "application/json": [json_key_hunter, json_value_hunter],
+    "text/html": [whole_text_hunter],
 }
