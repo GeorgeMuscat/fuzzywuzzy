@@ -17,6 +17,12 @@
 #define NUM_SIGNALS 32
 #define NUM_REGIONS 16
 
+#define CTRL_OFFSET "0x18c"
+
+const char *stack_str = "[stack]"; //todo: control placement
+const char *heap_str = "[heap]";
+const char *harness_str = "harness.so";
+
 struct mmap_data {
     void *addr;
     size_t len;
@@ -30,6 +36,7 @@ struct memory_region {
     void *saved_data;
 };
 
+// Put everything in a struct so we guarantee ordering of globals
 struct control_data {
     void *eax;
     void *ecx;
@@ -40,47 +47,40 @@ struct control_data {
     void *esi;
     void *edi;
 
-    size_t mmap_index;
-
-    void *stack_min;
-    void *stack_max;
-
-    void *stack_storage;
-    size_t stack_size;
     struct memory_region writable[NUM_REGIONS]; // todo should we malloc this? i really dont want to touch re-alloc in here, fragmentation is BAD.
     size_t writable_index;
+
+    bool signals[NUM_SIGNALS];
+
+    size_t mmap_index;
+    struct mmap_data mmaps[NUM_MMAPS];
+
+    int (*original_main_fn)(int, char **, char **);
+
+    char buf[BUF_SIZE];
 };
 
 static void fuzzywuzzy_read_mmap();
 
 static void fuzzywuzzy_reset();
-struct mmap_data mmaps[NUM_MMAPS];
-static bool signals[NUM_SIGNALS];
 
-static struct control_data *fuzzywuzzy_ctrl = NULL;
 
-static char *buf;
-
-static int (*original_main_fn)(int, char **, char **) = NULL;
+static struct control_data fuzzywuzzy_ctrl = {0};
 
 
 int fuzzywuzzy_main(int argc, char **argv, char **environ) {
-    if (fuzzywuzzy_ctrl == NULL) {
+    if (fuzzywuzzy_ctrl.original_main_fn == NULL) {
+
+        // do heap things here
 
         //first run
-        fuzzywuzzy_ctrl = malloc(sizeof *fuzzywuzzy_ctrl);
-        buf = malloc(BUF_SIZE);
 
         //fuzzywuzzy_ctrl->dlsym_handle = dlopen("libc.so", RTLD_LAZY | RTLD_LOCAL);
 
 
         fuzzywuzzy_read_mmap();
-        printf("stack base: %p, stack top: %p\n", fuzzywuzzy_ctrl->stack_min, fuzzywuzzy_ctrl->stack_max);
-        fuzzywuzzy_ctrl->stack_size = fuzzywuzzy_ctrl->stack_max - fuzzywuzzy_ctrl->stack_min;
-        fuzzywuzzy_ctrl->stack_storage = malloc(fuzzywuzzy_ctrl->stack_size);
-
-        //
-        //memcpy()
+        // DO NOT DO HEAP ALLOCATIONS AFTER HERE
+        // you are free to use globals however
     }
     //fuzzywuzzy_ctrl->ra = &&saved;
 
@@ -92,7 +92,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     //eax is about to be nuked, who cares what we do to it
     //save reg
     __asm__ (
-            "mov eax, dword [ebx+0x18c]\n"
+            "mov eax, dword [ebx+"CTRL_OFFSET"]\n"
             "mov [eax + 0x00], eax\n"
             "mov [eax + 0x04], ecx\n"
             "mov [eax + 0x08], edx\n"
@@ -105,18 +105,22 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
 
     // save stack
     __asm__(
-            "mov eax, dword [ebx+0x18c]\n"
+            "mov eax, dword [ebx+"CTRL_OFFSET"]\n"
+            "mov edi, 0\n"
+            "fuzzywuzzy_loop_regions:\n"
+            "mov eax, "
             "mov esi, 0\n"
-            "fuzzywuzzy_save_stack_loop:\n"
-            "mov edx, [eax + 0x2c]\n"   // edx = &stack_storage[0]
+            "fuzzywuzzy_loop_regions_loop_data:\n"
+            "mov edx, [eax + 0x0c]\n"   // edx = &stack_storage[0]
             "lea edx, [edx + esi]\n"    // edx = &stack_storage[i]
-            "mov ecx, [eax + 0x24]\n"   // ecx = &stack_min[0]
+            "mov ecx, [eax + 0x00]\n"   // ecx = &stack_min[0]
             "mov ecx, [ecx + esi]\n"    // ecx = stack_min[i]
             "mov [edx], ecx\n"          // stack_storage[i] = stack_min[i]
             "mov edx, [eax + 0x30]\n"   // edx = stack_size
             "add esi, 4\n"              // i += 1
             "cmp esi, edx\n"            // cmp i + 1, stack_size
-            "jne fuzzywuzzy_save_stack_loop\n"
+            "jne fuzzywuzzy_save_loop_regions_loop_data\n"
+            "jne fuzzywuzzy_loop_regions"
             );
 
     // restore registers
@@ -132,32 +136,32 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             "mov edi, [eax + 0x1c]\n"
             );
 
-    printf("%p, eax = %p, ebx = %p, ebp = %p, esp = %p\n", fuzzywuzzy_ctrl, fuzzywuzzy_ctrl->eax, fuzzywuzzy_ctrl->ebx, fuzzywuzzy_ctrl->ebp, fuzzywuzzy_ctrl->esp);
+    printf("%p, eax = %p, ebx = %p, ebp = %p, esp = %p\n", &fuzzywuzzy_ctrl, fuzzywuzzy_ctrl.eax, fuzzywuzzy_ctrl.ebx,
+           fuzzywuzzy_ctrl.ebp, fuzzywuzzy_ctrl.esp);
 
     __asm__("saved:\n");
 
-    return original_main_fn(argc, argv, environ);
+    return fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
 }
 
 static void fuzzywuzzy_reset() {
     for (int i = 1; i < NUM_SIGNALS; i++) {
-        if (signals[i]) {
+        if (fuzzywuzzy_ctrl.signals[i]) {
             signal(i, SIG_DFL);
         }
     }
 
-    for (int i = 0; i < fuzzywuzzy_ctrl->mmap_index; i++) {
-        if (mmaps[i].addr != NULL) {
-            munmap(mmaps[i].addr, mmaps[i].len);
+    for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
+        if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
+            munmap(fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
         }
     }
 
 
-
-    fuzzywuzzy_ctrl->mmap_index = 0;
+    fuzzywuzzy_ctrl.mmap_index = 0;
     // nuke stack
     __asm__(
-            "mov eax, dword [ebx+0x18c]\n"
+            "mov eax, dword [ebx+"CTRL_OFFSET"]\n"
             "mov esi, 0\n"
             "fuzzywuzzy_reset_stack_loop:\n"
             "mov edx, [eax + 0x2c]\n"   // edx = &stack_storage[0]
@@ -172,7 +176,7 @@ static void fuzzywuzzy_reset() {
             );
 
     __asm__(
-            "mov eax, dword [ebx+0x18c]\n"
+            "mov eax, dword [ebx+"CTRL_OFFSET"]\n"
             "mov eax, [eax + 0x00]\n"
             "mov ecx, [eax + 0x04]\n"
             "mov edx, [eax + 0x08]\n"
@@ -204,13 +208,17 @@ static void fuzzywuzzy_read_mmap() {
     void *top = NULL;
     char prot[5] = {0};
     size_t offset = 0;
-    const char *stack_str = "[stack]";
-    const char *harness_str = "harness.so";
     int name_start = 0;
     int name_end = 0;
+    size_t heap_save_index = 0;
+    void *last_heap_addr = NULL;
+    size_t last_heap_size = 0;
 
+
+    char *buf = fuzzywuzzy_ctrl.buf;
 
     read(fd, buf, BUF_SIZE); //TODO: BUFFERED READ
+
 
     parse_state_t state = PARSE_STATE_ADDRS;
     int marker = 0;
@@ -282,14 +290,33 @@ static void fuzzywuzzy_read_mmap() {
                 should_save = false;
             }
 
+
             if (should_save) {
-                fuzzywuzzy_ctrl->writable[fuzzywuzzy_ctrl->writable_index++] = (struct memory_region){base, top, top - base, malloc(top - base)};
+                if (strncmp(&buf[name_start], heap_str, 6) == 0) {
+                    heap_save_index = fuzzywuzzy_ctrl.writable_index;
+                    fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index] = (struct memory_region) {base, top,
+                                                                                                       top - base,
+                                                                                                       NULL};
+                } else {
+                    fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index] = (struct memory_region) {base, top,
+                                                                                                       top - base,
+                                                                                                       malloc(top -
+                                                                                                              base)};
+                    last_heap_addr = fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index].saved_data;
+                    last_heap_size = fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index].size;
+                    memcpy(fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index].saved_data, base, top - base);
+                }
+                fuzzywuzzy_ctrl.writable_index++;
             }
 
             state = PARSE_STATE_ADDRS;
         }
     }
 
+
+    fuzzywuzzy_ctrl.writable[heap_save_index].top = (void *)((last_heap_addr + last_heap_size - fuzzywuzzy_ctrl.writable[heap_save_index].base) * 2 + 0x10);
+    fuzzywuzzy_ctrl.writable[heap_save_index].size = fuzzywuzzy_ctrl.writable[heap_save_index].top - fuzzywuzzy_ctrl.writable[heap_save_index].base;
+    fuzzywuzzy_ctrl.writable[heap_save_index].saved_data = malloc(fuzzywuzzy_ctrl.writable[heap_save_index].size);
 
     close(fd);
 }
@@ -301,7 +328,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
     *(void **) (&real_mmap) = dlsym(RTLD_NEXT, "mmap");
     void *res = (*real_mmap)(addr, length, prot, flags, fd, offset);
 
-    mmaps[fuzzywuzzy_ctrl->mmap_index++] = (struct mmap_data) {res, length};
+    fuzzywuzzy_ctrl.mmaps[fuzzywuzzy_ctrl.mmap_index++] = (struct mmap_data) {res, length};
 
     return res;
 }
@@ -331,12 +358,12 @@ __libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_av, v
         *(void **) (&real_libc_start_main) = dlsym(RTLD_NEXT, __func__);
     }
 
-    if (original_main_fn != NULL) {
+    if (fuzzywuzzy_ctrl.original_main_fn != NULL) {
         puts("WARNING: LIBC START MAIN TWICE, THIS WILL BREAK THE HARNESS");
         abort();
     }
 
-    original_main_fn = main;
+    fuzzywuzzy_ctrl.original_main_fn = main;
 
 
     return (*real_libc_start_main)(fuzzywuzzy_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
@@ -392,6 +419,7 @@ int snprintf_replace(char *str, size_t size, const char *format, ...) {
 */
 
 void (*real_free)(void *ptr);
+
 void free(void *ptr) {
     if (!real_free) {
         *(void **) (&real_free) = dlsym(RTLD_NEXT, __func__);
@@ -400,6 +428,7 @@ void free(void *ptr) {
 }
 
 void (*real_exit)(int status);
+
 _Noreturn void exit(int status) {
     if (!real_exit) {
         *(void **) (&real_exit) = dlsym(RTLD_NEXT, __func__);
