@@ -8,7 +8,7 @@ def repeat_segment(sample_input: bytes, delimiter: bytes = b"\n") -> Iterator[by
     in the sequence.
     """
     original_split = sample_input.split(delimiter)
-    for i in range(original_split):
+    for i in range(len(original_split)):
         copy = original_split.copy()
         copy.insert(i + 1, original_split[i])
         try:

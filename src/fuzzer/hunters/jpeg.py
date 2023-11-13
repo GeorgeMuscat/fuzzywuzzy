@@ -1,9 +1,12 @@
 from pickle import MARK
 from struct import unpack
+from fuzzer.mutations import buffer_overflow
+from fuzzer.mutations.repeated_parts import repeat_segment
 
 from fuzzer.utils import round_robin
 from ..mutations.keywords import delete_keywords, repeat_keywords
 from ..mutations.bitflip import flip_byte_mutation
+from ..mutations.buffer_overflow import buffer_overflow_mutation
 
 MUTATORS = [delete_keywords, repeat_keywords]
 
@@ -37,7 +40,7 @@ def header_hunter(sample_input: bytes):
     """
     Gets the header and performs mutations on it
     """
-    HEADER_MUTATORS = [flip_byte_mutation]
+    HEADER_MUTATORS = [flip_byte_mutation, buffer_overflow_mutation, repeat_segment]
     # Get the header (after 0xFFE0 and before 0xFFDB)
     after_header = MARKERS["Quantization Table"] + b"".join(
         sample_input.split(MARKERS["Quantization Table"])[1:]
@@ -48,4 +51,22 @@ def header_hunter(sample_input: bytes):
         + MARKERS["Application Default Header"]
     )
     for mutated_header in round_robin([mutator(header) for mutator in HEADER_MUTATORS]):
-        yield before_header + mutated_header + after_header
+        print(mutated_header)
+        yield mutated_header + after_header
+
+
+def quantization_table_hunter(sample_input: bytes):
+    HEADER_MUTATORS = [flip_byte_mutation, buffer_overflow_mutation, repeat_segment]
+    # Get the header (after 0xFFE0 and before 0xFFDB)
+    after_table = MARKERS["Start of Frame"] + b"".join(
+        sample_input.split(MARKERS["Start of Frame"])[1:]
+    )
+    table = sample_input.split(MARKERS["Start of Frame"])[0]
+    before_table = (
+        sample_input.split(MARKERS["Quantization Table"])[0]
+        + MARKERS["Quantization Table"]
+    )
+    print(table)
+    for mutated_table in round_robin([mutator(table) for mutator in HEADER_MUTATORS]):
+        # print(mutated_header)
+        yield before_table + mutated_table + after_table

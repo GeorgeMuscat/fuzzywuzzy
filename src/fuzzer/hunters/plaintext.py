@@ -36,7 +36,7 @@ def whole_text_hunter(sample_input: bytes) -> Iterator[bytes]:
         yield mutated_input
 
 
-def segment_hunter(sep: bytes) -> Iterator[bytes]:
+def segment_hunter(sep: bytes):
     """Runs each mutator on each segment of the sample input individually, based on a predefined set of delimiters."""
 
     def hunter(sample_input: bytes) -> Iterator[bytes]:
