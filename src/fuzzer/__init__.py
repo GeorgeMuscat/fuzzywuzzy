@@ -10,6 +10,8 @@ from fuzzer.utils import round_robin, Reporter
 
 from .hunters import MIME_TYPE_TO_HUNTERS
 
+reporter = None
+
 
 @click.command()
 @click.argument(
@@ -25,7 +27,6 @@ from .hunters import MIME_TYPE_TO_HUNTERS
 )
 def cli(binary: str, sample_input: bytes, output_file: str):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
-    global reporter
     reporter = Reporter(binary)
     result = fuzz(binary, sample_input)
     if result is not None:
@@ -51,7 +52,7 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
 
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
-        reporter.inc_mutations()
+        reporter.inc_mutations() if isinstance(reporter, Reporter) else None
         if type(result) is int and result < 0:
             return mutation
 
