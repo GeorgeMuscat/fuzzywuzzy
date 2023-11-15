@@ -21,8 +21,8 @@ MUTATORS = [
 def xml_attribute_hunter(sample_input: bytes) -> Iterator[bytes]:
     """For every node in the xml tree, try fuzzing the attributes"""
     root = xml.fromstring(sample_input)
-    for el in root.iter():
-        for mutation in round_robin([mutator('') for mutator in MUTATORS]):
+    for mutation in round_robin([mutator(sample_input) for mutator in MUTATORS]):
+        for el in root.iter():
             for attr in el.attrib:
                 el.set(attr, mutation.decode())
                 yield xml.tostring(root)
@@ -30,15 +30,15 @@ def xml_attribute_hunter(sample_input: bytes) -> Iterator[bytes]:
 def xml_text_hunter(sample_input: bytes) -> Iterator[bytes]:
     """For every node in the xml tree, try fuzzing the text field"""
     root = xml.fromstring(sample_input)
-    for el in root.iter():
-        for mutation in round_robin([mutator('') for mutator in MUTATORS]):
+    for mutation in round_robin([mutator('') for mutator in MUTATORS]):
+        for el in root.iter():
             el.text = mutation.decode()
             yield xml.tostring(root)
 
 def xml_tag_hunter(sample_input: bytes) -> Iterator[bytes]:
     """For every node in the xml tree, try fuzzing the text field"""
     root = xml.fromstring(sample_input)
-    for el in root.iter():
-        for mutation in round_robin([mutator('') for mutator in MUTATORS]):
+    for mutation in round_robin([mutator('') for mutator in MUTATORS]):
+        for el in root.iter():
             el.tag = mutation.decode()
             yield xml.tostring(root)
