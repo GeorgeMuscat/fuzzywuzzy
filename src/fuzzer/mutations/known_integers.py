@@ -12,6 +12,7 @@ KNOWN_INTS: list[int] = list(
         *(2**i for i in range(1, 32)),  # 2^i
         *(-(2**i) for i in range(1, 32)),  # -(2^i)
         *(2**i + 1 for i in range(1, 32)),  # 2^i + 1
+        0xFF,
     }
 )
 

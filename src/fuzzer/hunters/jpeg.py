@@ -1,6 +1,7 @@
 from pickle import MARK
 from struct import unpack
 from fuzzer.mutations import buffer_overflow
+from fuzzer.mutations.known_integers import known_integer_packed_be_mutation
 from fuzzer.mutations.repeated_parts import repeat_segment
 
 from fuzzer.utils import round_robin
@@ -19,6 +20,8 @@ MARKERS = {
     "Start of Scan": 0xFFDA.to_bytes(2, "big"),
     "End of Image": 0xFFD9.to_bytes(2, "big"),
 }
+# I think im actually just wrong here... https://www.media.mit.edu/pia/Research/deepview/exif.html
+
 # https://en.wikibooks.org/wiki/JPEG_-_Idea_and_Practice/The_header_part
 
 
@@ -51,7 +54,6 @@ def header_hunter(sample_input: bytes):
         + MARKERS["Application Default Header"]
     )
     for mutated_header in round_robin([mutator(header) for mutator in HEADER_MUTATORS]):
-        print(mutated_header)
         yield mutated_header + after_header
 
 
@@ -66,7 +68,6 @@ def quantization_table_hunter(sample_input: bytes):
         sample_input.split(MARKERS["Quantization Table"])[0]
         + MARKERS["Quantization Table"]
     )
-    print(table)
     for mutated_table in round_robin([mutator(table) for mutator in HEADER_MUTATORS]):
         # print(mutated_header)
         yield before_table + mutated_table + after_table

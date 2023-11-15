@@ -6,7 +6,7 @@ import click
 import magic
 
 from fuzzer.harness import Harness
-from fuzzer.utils import round_robin
+from fuzzer.utils import round_robin, Reporter
 
 from .hunters import MIME_TYPE_TO_HUNTERS
 
@@ -23,15 +23,17 @@ from .hunters import MIME_TYPE_TO_HUNTERS
     type=click.File("wb"),
     default="bad.txt",
 )
-def cli(binary, sample_input, output_file):
+def cli(binary: str, sample_input: bytes, output_file: str):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
+    global reporter
+    reporter = Reporter(binary)
     result = fuzz(binary, sample_input)
     if result is not None:
-        click.echo("HOLY SHIT WE DID IT")
+        reporter.print("HOLY SHIT WE DID IT")
         output_file.write(result)
-        click.echo("Check your cwd for bad.txt")
+        reporter.print("Check your cwd for bad.txt")
     else:
-        click.echo("We couldn't break the binary T_T")
+        reporter.print("We couldn't break the binary T_T")
 
 
 def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
@@ -49,6 +51,7 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
 
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
+        reporter.inc_mutations()
         if type(result) is int and result < 0:
             return mutation
 
