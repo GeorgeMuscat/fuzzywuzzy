@@ -42,3 +42,10 @@ def xml_tag_hunter(sample_input: bytes) -> Iterator[bytes]:
         for el in root.iter():
             el.tag = mutation.decode()
             yield xml.tostring(root)
+
+def xml_repeated_lines(sample_input: bytes) -> Iterator[bytes]:
+    root = xml.fromstring(sample_input)
+    for i in range(len(root)):
+        for _ in range(100):
+            root.append(root[i])
+            yield xml.tostring(root)
