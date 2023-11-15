@@ -3,7 +3,7 @@ from typing import Iterator, TypeVar
 from rich.panel import Panel
 from rich.live import Live
 from rich.status import Status
-from rich.console import Group
+from rich.console import Group, Console
 
 from rich.progress import Progress, TimeElapsedColumn, TextColumn
 
@@ -26,6 +26,7 @@ def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
 
 class Reporter:
     def __init__(self, binary: str) -> None:
+        self.console = Console()
         self.mutations = 0
         self.init_time = datetime.now()
 
@@ -43,10 +44,7 @@ class Reporter:
                 self.result_progress,
             )
         )
-        self.live = Live(
-            self.panel,
-            refresh_per_second=30,
-        )
+        self.live = Live(self.panel, refresh_per_second=30, console=self.console)
         self.live.start()
 
     def print(self, message: str):
@@ -57,6 +55,9 @@ class Reporter:
         self.mutations += 1
         self.mutation_status.update(self.__get_mutation_str(self.mutations))
         self.speed_status.update(self.__get_speed())
+
+    def reset_console(self):
+        self.console.show_cursor()
 
     def __get_mutation_str(self, mutations: int):
         return f"Mutations: {mutations}"

@@ -27,6 +27,7 @@ reporter = None
 )
 def cli(binary: str, sample_input: bytes, output_file: str):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
+    global reporter
     reporter = Reporter(binary)
     result = fuzz(binary, sample_input)
     if result is not None:
@@ -35,6 +36,8 @@ def cli(binary: str, sample_input: bytes, output_file: str):
         reporter.print("Check your cwd for bad.txt")
     else:
         reporter.print("We couldn't break the binary T_T")
+
+    reporter.reset_console()
 
 
 def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
@@ -52,7 +55,8 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
 
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
-        reporter.inc_mutations() if isinstance(reporter, Reporter) else None
+
+        reporter.inc_mutations() if reporter != None else None
         if type(result) is int and result < 0:
             return mutation
 
