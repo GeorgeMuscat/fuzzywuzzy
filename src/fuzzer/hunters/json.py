@@ -1,5 +1,6 @@
 import json
 from typing import Iterator
+from random import choice
 
 from ..utils import round_robin
 from fuzzer.mutations.buffer_overflow import buffer_overflow_mutation
@@ -46,3 +47,11 @@ def json_value_hunter(sample_input: bytes) -> Iterator[bytes]:
             except UnicodeDecodeError:
                 continue
             yield json.dumps(mutated_json).encode()
+
+def json_key_remover(sample_input: bytes) -> Iterator[bytes]:
+    """Just removes a key value pair from the json"""
+    parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    for key in parsed_json:
+        mutated_json = parsed_json.copy()
+        del mutated_json[key]
+        yield json.dumps(mutated_json).encode()
