@@ -26,9 +26,10 @@ const char *harness_str = "harness.so";
  */
 int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     if (!fuzzywuzzy_ctrl.dummy_malloc) {
-        // you are also free to use malloc here
+        // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         //endregion
+        // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
         fuzzywuzzy_ctrl.dummy_malloc = malloc(0x8); //lolxd
         fuzzywuzzy_read_mmap();
     }
@@ -89,9 +90,11 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             "mov edi, [eax + 0x1c]\n"
             );
 
+
+    __asm__("fuzzywuzzy_saved:\n");
+    // this code will be run on every execution of the program
     //region C
     //endregion
-    __asm__("fuzzywuzzy_saved:\n");
 
     return fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
 }
@@ -271,7 +274,7 @@ void fuzzywuzzy_read_mmap() {
                 if (strncmp(&buf[name_start], heap_str, 6) == 0) {
                     heap_save_index = fuzzywuzzy_ctrl.writable_index;
                     top = (void*)fuzzywuzzy_ctrl.dummy_malloc + malloc_usable_size((void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
-                    /* size is slightly bigger, just to ensure we capture the next pointer*/
+                    // size is slightly bigger, just to ensure we capture the next pointer
                 }
                 fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index] =
                         (struct memory_region) {base, top,top - base, NULL};
