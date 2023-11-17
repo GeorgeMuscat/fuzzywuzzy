@@ -37,6 +37,8 @@ class Harness3:
 
         assert self.process.stdin is not None
 
+        self._await_reset()
+        self._send_ack()
         self._await_start()
         self.process.stdin.write(input)
         start = time.time()
@@ -192,6 +194,10 @@ class Harness3:
                 f"tried to send unexpected message type {msg_type}"
             )
 
+    def _await_reset(self):
+        msg = self._read_message()
+        assert msg["msg_type"] == MSG_TARGET_RESET
+
     def _await_start(self):
         msg = self._read_message()
         assert msg["msg_type"] == MSG_TARGET_START
@@ -213,5 +219,6 @@ class UnknownMessageTypeException(HarnessException):
 
 
 harness = Harness3(Path("../../../tests/binaries/fuzz_targets/plaintext2"))
+print("result 1:", harness.run(b"hi\n"))
 print("result 1:", harness.run(b"trivial\n2\n"))
 print("result 2:", harness.run(b"trivial\n-1\n"))

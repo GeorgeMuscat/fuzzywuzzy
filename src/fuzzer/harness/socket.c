@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "hooks.h"
 
@@ -24,6 +25,9 @@ extern GEN_DEF(int puts, const_char_ptr s);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
     char *path = REAL(getenv, SOCKET_PATH_ENVVAR);
+    if (path == NULL) {
+        REAL(abort);
+    }
 
     struct sockaddr_un remote;
     remote.sun_family = AF_UNIX;
@@ -34,7 +38,7 @@ void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
         REAL(abort);
     }
 
-    int remote_len = sizeof(remote.sun_family) + REAL(strlen, remote.sun_path);
+    int remote_len = sizeof(remote.sun_family) + REAL(strlen, remote.sun_path) + 2;
     int result = REAL(connect, sock_fd, (struct sockaddr *)&remote, remote_len);
     if (result < 0) {
         REAL(abort);

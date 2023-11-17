@@ -14,14 +14,17 @@ GEN_WRAPPER(int close, int fd)
 
 GEN_WRAPPER(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen)
 GEN_WRAPPER(void free, void_ptr ptr)
+GEN_WRAPPER(char_ptr fgets, char_ptr str, int n, FILE_ptr stream);
 GEN_WRAPPER(char_ptr getenv, const_char_ptr name)
-GEN_WRAPPER(void_ptr malloc, size_t size)
+//GEN_WRAPPER(void_ptr malloc, size_t size)
 GEN_WRAPPER(size_t malloc_usable_size, void_ptr ptr)
 GEN_WRAPPER(void_ptr memset, void_ptr str, int c, size_t n)
 GEN_WRAPPER(int open, const_char_ptr pathname, int flags)
 GEN_WRAPPER(int puts, const_char_ptr s)
 GEN_WRAPPER(ssize_t read, int fd, void_ptr buf, size_t count)
 GEN_WRAPPER(int socket, int domain, int type, int protocol)
+
+GEN_WRAPPER(char_ptr strchr, const_char_ptr str, int c)
 GEN_WRAPPER(char_ptr strcpy, char_ptr dest, const_char_ptr src)
 GEN_WRAPPER(size_t strlen, const_char_ptr s)
 GEN_WRAPPER(int strncmp, const_char_ptr s1, const_char_ptr s2, size_t n)
@@ -33,6 +36,7 @@ GEN_DEF(void exit, int status)
 GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset)
 GEN_DEF(int munmap, void_ptr addr, size_t length)
 GEN_DEF(int vprintf, const_char_ptr format, va_list ap)
+GEN_DEF(void_ptr malloc, size_t size)
 
 void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
 int *(*fuzzywuzzy_real___libc_start_main)(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void),

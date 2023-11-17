@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LOAD(FN) *(void **)(&CAT(fuzzywuzzy_real_, FN)) = dlsym(RTLD_NEXT, #FN)
 
@@ -16,6 +17,7 @@ typedef char** char_ptr_ptr;
 typedef const char* const_char_ptr;
 typedef const struct sockaddr* const_sockaddr_ptr;
 typedef const unsigned long unsigned_long;
+typedef FILE *FILE_ptr;
 
 #define LPAREN (
 #define RPAREN )
@@ -42,6 +44,7 @@ typedef const unsigned long unsigned_long;
 #define SPLIT_ssize_t LPAREN ssize_t COMMA
 #define SPLIT_off_t LPAREN off_t COMMA
 #define SPLIT_va_list LPAREN va_list COMMA
+#define SPLIT_FILE_ptr LPAREN FILE* COMMA
 
 #define CAT(arg1, arg2) CAT1(arg1, arg2)
 #define CAT1(arg1, arg2) CAT2(arg1, arg2)
