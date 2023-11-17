@@ -41,9 +41,9 @@ class Harness3:
         self._await_reset()
         self._send_ack()
         self._await_start()
-        self.process.stdin.write(input)
         start = time.time()
         self._send_ack()
+        self.process.stdin.write(input)
 
         events = []
 
@@ -109,8 +109,8 @@ class Harness3:
         self.process = Popen(
             self.binary_path.absolute(),
             stdin=PIPE,
-            stdout=None,
-            stderr=None,
+            stdout=DEVNULL,
+            stderr=DEVNULL,
             env={"LD_PRELOAD": "./harness.so", "FUZZYWUZZY_SOCKET_PATH": socket_path},
         )
 

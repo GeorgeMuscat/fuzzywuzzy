@@ -120,26 +120,14 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
 
 
     __asm__("fuzzywuzzy_saved:\n");
-    fuzzywuzzy_log_reset(0);
+    fuzzywuzzy_user_reset(fuzzywuzzy_ctrl.last_exit_code);
 
 
 
-    for (int i = 0; i < NUM_SIGNALS; i++) {
-        if (fuzzywuzzy_ctrl.signals[i]) {
-            fuzzywuzzy_ctrl.signals[i] = false;
-            REAL(signal, i, SIG_DFL);
-        }
-    }
 
-    for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
-        if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
-            REAL(munmap, fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
-        }
-    }
-
-    fuzzywuzzy_ctrl.mmap_index = 0;
     //char buf[64];
     //while (REAL(read, STDIN, buf, 64) != 0)
+    //__fpurge(stdin);
     // this code will be run on every execution of the program
     //region C
     fuzzywuzzy_log_start();
@@ -176,6 +164,28 @@ void fuzzywuzzy_log_reset(int exit_code) {
     struct fuzzer_msg_t msg = {.msg_type = MSG_TARGET_RESET, .data = {.target_reset = {exit_code}}};
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
     fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
+}
+
+void fuzzywuzzy_user_reset(int exit_code) {
+    fuzzywuzzy_log_reset(0);
+
+    // do reset things here
+    for (int i = 0; i < NUM_SIGNALS; i++) {
+        if (fuzzywuzzy_ctrl.signals[i]) {
+            fuzzywuzzy_ctrl.signals[i] = false;
+            REAL(signal, i, SIG_DFL);
+        }
+    }
+
+    for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
+        if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
+            REAL(munmap, fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
+        }
+    }
+
+    fuzzywuzzy_ctrl.mmap_index = 0;
+
+
 }
 
 /**
