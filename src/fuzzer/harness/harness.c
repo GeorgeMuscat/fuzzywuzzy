@@ -10,6 +10,8 @@
 #include <string.h>
 
 #include "harness.h"
+#include "socket.h"
+#include "hooks.h"
 
 
 const char *heap_str = "[heap]";
@@ -28,6 +30,8 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     if (!fuzzywuzzy_ctrl.dummy_malloc) {
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
+        fuzzywuzzy_preload_hooks();
+        fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
         // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
         fuzzywuzzy_ctrl.dummy_malloc = malloc(0x8); //lolxd
@@ -94,16 +98,48 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     __asm__("fuzzywuzzy_saved:\n");
     // this code will be run on every execution of the program
     //region C
+    fuzzywuzzy_log_start();
     //endregion
 
-    return fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
+    int exit_code = fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
+    fuzzywuzzy_reset(exit_code);
+}
+
+/**
+ * Logs a call to libc to the current socket connection.
+ */
+void fuzzywuzzy_log_libc_call(char *func_name, size_t return_addr) {
+    struct fuzzer_msg_t msg = {.msg_type = MSG_LIBC_CALL, .data = {.libc_call = {"", return_addr}}};
+    strcpy(msg.data.libc_call.func_name, func_name);
+    fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
+    fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
+}
+
+/**
+ * Logs a start to the current socket connection.
+ */
+void fuzzywuzzy_log_start() {
+    struct fuzzer_msg_t msg = {.msg_type = MSG_TARGET_RESET, .data = {}};
+    fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
+    fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
+}
+
+/**
+ * Logs a reset to the current socket connection.
+ */
+void fuzzywuzzy_log_reset(int exit_code) {
+    struct fuzzer_msg_t msg = {.msg_type = MSG_TARGET_RESET, .data = {.target_reset = {exit_code}}};
+    fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
+    fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
 
 /**
  * Reset program state, equivalent to re-running program. This will automatically re-invoke main
  * Can be called as a regular C function from anywhere
  */
-void fuzzywuzzy_reset() {
+void fuzzywuzzy_reset(int exit_code) {
+    fuzzywuzzy_log_reset(exit_code);
+
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
             fuzzywuzzy_ctrl.signals[i] = false;
