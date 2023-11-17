@@ -25,7 +25,7 @@ reporter = None
     type=click.File("wb"),
     default="bad.txt",
 )
-def cli(binary: str, sample_input: bytes, output_file: str):
+def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
     global reporter
     reporter = Reporter(binary)

@@ -1,5 +1,7 @@
 from datetime import datetime
-from typing import Iterator, TypeVar
+from math import e
+from typing import Iterator, TypeVar, BinaryIO
+from pathlib import Path
 from rich.panel import Panel
 from rich.live import Live
 from rich.status import Status
@@ -8,6 +10,41 @@ from rich.console import Group, Console
 from rich.progress import Progress, TimeElapsedColumn, TextColumn
 
 T = TypeVar("T")
+
+SIGNALS = {
+    1: "SIGHUP",
+    2: "SIGINT",
+    3: "SIGQUIT",
+    4: "SIGILL",
+    5: "SIGTRAP",
+    6: "SIGABRT",
+    6: "SIGIOT",
+    7: "SIGBUS",
+    8: "SIGFPE",
+    9: "SIGKILL",
+    10: "SIGUSR1",
+    11: "SIGSEGV",
+    12: "SIGUSR2",
+    13: "SIGPIPE",
+    14: "SIGALRM",
+    15: "SIGTERM",
+    16: "SIGSTKFLT",
+    17: "SIGCHLD",
+    18: "SIGCONT",
+    19: "SIGSTOP",
+    20: "SIGTSTP",
+    21: "SIGTTIN",
+    22: "SIGTTOU",
+    23: "SIGURG",
+    24: "SIGXCPU",
+    25: "SIGXFSZ",
+    26: "SIGVTALRM",
+    27: "SIGPROF",
+    28: "SIGWINCH",
+    29: "SIGIO",
+    30: "SIGPWR",
+    31: "SIGSYS",
+}
 
 
 def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
@@ -25,7 +62,7 @@ def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
 
 
 class Reporter:
-    def __init__(self, binary: str) -> None:
+    def __init__(self, binary: Path) -> None:
         self.console = Console()
         self.mutations = 0
         self.init_time = datetime.now()
@@ -51,6 +88,14 @@ class Reporter:
         self.result_progress.add_task(message)
         self.live.refresh()
 
+    def print_crash_output(self, duration: float, exit_code: int, events: list[tuple]):
+        msg = f"""[bold]Target Binary Crash Detected[/bold]
+            - Binary crashed with {lookup_signal(exit_code)}
+            - Bad input took {duration:.2f} seconds to run
+            - Notable events: {events}
+        """  # TODO: actually events look ok
+        self.print(msg)
+
     def inc_mutations(self):
         self.mutations += 1
         self.mutation_status.update(self.__get_mutation_str(self.mutations))
@@ -70,3 +115,8 @@ class Reporter:
             return f"Speed: {self.mutations / (datetime.now() - self.init_time).total_seconds():.2f} mutations/sec"
         except ZeroDivisionError:
             return f"0 mutations/sec"
+
+
+def lookup_signal(exit_code: int):
+    """ """
+    return SIGNALS[-1 * exit_code]
