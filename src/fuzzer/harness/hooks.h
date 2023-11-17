@@ -14,6 +14,7 @@ typedef void* void_ptr;
 typedef const void *const_void_ptr;
 typedef char* char_ptr;
 typedef const char* const_char_ptr;
+typedef const struct sockaddr * const_sockaddr_ptr;
 
 #define LPAREN (
 #define RPAREN )
@@ -32,6 +33,8 @@ typedef const char* const_char_ptr;
 #define SPLIT_void LPAREN void COMMA
 #define SPLIT_void_ptr LPAREN void* COMMA
 #define SPLIT_const_void_ptr LPAREN const void* COMMA
+#define SPLIT_const_sockaddr_ptr LPAREN const struct sockaddr * COMMA
+#define SPLIT_socklen_t LPAREN socklen_t COMMA
 #define SPLIT_size_t LPAREN size_t COMMA
 #define SPLIT_ssize_t LPAREN ssize_t COMMA
 #define SPLIT_off_t LPAREN off_t COMMA

@@ -19,7 +19,7 @@ const char *harness_str = "harness.so";
 
 //do not use realloc or free ANYWHERE
 
-extern void *(*real_mmap)(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+extern GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset);
 
 struct control_data fuzzywuzzy_ctrl = {0};
 /**
@@ -334,7 +334,7 @@ void fuzzywuzzy_read_mmap() {
         }
     }
 
-    fuzzywuzzy_ctrl.writable_saved_base = (*real_mmap)((void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    fuzzywuzzy_ctrl.writable_saved_base = REAL(mmap, (void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     fuzzywuzzy_ctrl.writable_saved_curr = fuzzywuzzy_ctrl.writable_saved_base;
     for (int i = 0; i < fuzzywuzzy_ctrl.writable_index; i++) {

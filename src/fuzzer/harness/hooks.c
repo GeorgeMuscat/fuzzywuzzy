@@ -9,6 +9,8 @@
 #include "harness.h"
 
 GEN_WRAPPER(int close, int fd)
+
+GEN_WRAPPER(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen)
 GEN_WRAPPER(void free, void_ptr ptr)
 GEN_WRAPPER(char_ptr getenv, const_char_ptr name)
 GEN_WRAPPER(void_ptr memset, void_ptr str, int c, size_t n)
