@@ -95,7 +95,7 @@ class Reporter:
     - Binary crashed with signal {lookup_signal(exit_code)}
     - Bad input took {duration:.2f} seconds to run
     - Notable events: {events if len(events) < 10 else f"[bold]See {fn} for a list of events[/bold]"}"""  # TODO: actually make events look ok
-        if len(events) < 10:
+        if len(events) >= 10:
             fp = open(fn, "w+")
             fp.write(str(events))
             fp.close()
