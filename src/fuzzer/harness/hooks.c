@@ -69,6 +69,7 @@ _Noreturn void exit(int status) {
     LOAD_GUARD(exit)
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
+    fuzzywuzzy_ctrl.last_exit_code = status;
 
     LOAD_GUARD(exit);
     setcontext(&fuzzywuzzy_ctrl.context);

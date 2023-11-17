@@ -139,7 +139,8 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     //endregion
 
     int exit_code = fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
-    fuzzywuzzy_reset(exit_code);
+    fuzzywuzzy_ctrl.last_exit_code = exit_code;
+    setcontext(&fuzzywuzzy_ctrl.context);
 }
 
 /**

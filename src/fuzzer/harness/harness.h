@@ -66,6 +66,7 @@ struct control_data {
     struct fuzzer_socket_t sock;
 
     ucontext_t context;
+    int last_exit_code;
 };
 
 int fuzzywuzzy_main(int argc, char **argv, char **environ);
