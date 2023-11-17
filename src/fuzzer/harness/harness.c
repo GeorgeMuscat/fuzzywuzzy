@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <malloc.h>
 
 #include "harness.h"
 
@@ -104,7 +105,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
  * Reset program state, equivalent to re-running program. This will automatically re-invoke main
  * Can be called as a regular C function from anywhere
  */
-void fuzzywuzzy_reset() {
+_Noreturn void fuzzywuzzy_reset() {
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
             fuzzywuzzy_ctrl.signals[i] = false;
@@ -161,6 +162,9 @@ void fuzzywuzzy_reset() {
             );
 
     __asm__("jmp fuzzywuzzy_saved\n");
+
+    // this never runs, but silences the no return warning
+    exit(1);
 }
 
 typedef enum parse_state {

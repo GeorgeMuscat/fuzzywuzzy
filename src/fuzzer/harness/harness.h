@@ -62,7 +62,7 @@ struct control_data fuzzywuzzy_ctrl = {0};
 int fuzzywuzzy_main(int argc, char **argv, char **environ);
 void fuzzywuzzy_read_mmap();
 
-void fuzzywuzzy_reset();
+_Noreturn void fuzzywuzzy_reset();
 
 void (*real_free)(void *ptr);
 
