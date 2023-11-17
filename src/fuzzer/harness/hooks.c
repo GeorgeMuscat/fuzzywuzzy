@@ -2,9 +2,9 @@
 #include "hooks.h"
 
 #include <dlfcn.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/socket.h>
-#include <stdarg.h>
 
 #include "harness.h"
 
@@ -46,6 +46,7 @@ void fuzzywuzzy_preload_hooks(void) {
     LOAD(socket);
     LOAD(abort);
     LOAD(strlen);
+    LOAD(connect);
     LOAD(memset);
     LOAD(read);
     LOAD(write);
@@ -127,5 +128,3 @@ int printf(const char *format, ...) {
     va_end(list);
     return res;
 }
-
-

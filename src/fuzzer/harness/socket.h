@@ -15,8 +15,7 @@
 #define MSG_INPUT_RESPONSE 0x06
 
 struct fuzzer_socket_t {
-    int sock_fd;
-    int client_fd;
+    int conn_fd;
 };
 
 struct fuzzer_msg_t {
