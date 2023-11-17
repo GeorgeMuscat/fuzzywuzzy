@@ -2,9 +2,9 @@
 #include "hooks.h"
 
 #include <dlfcn.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/socket.h>
-#include <stdarg.h>
 
 #include "harness.h"
 
@@ -21,11 +21,8 @@ char *(*real_strcpy)(char *restrict dest, const char *src);
 int (*real_socket)(int domain, int type, int protocol);
 void (*real_abort)(void);
 size_t (*real_strlen)(const char *s);
-int (*real_bind)(int sockfd, const struct sockaddr *addr,
-                 socklen_t addrlen);
-int (*real_listen)(int sockfd, int backlog);
-int (*real_accept)(int sockfd, struct sockaddr *restrict addr,
-                   socklen_t *restrict addrlen);
+int (*real_connect)(int sockfd, const struct sockaddr *addr,
+                    socklen_t addrlen);
 void *(*real_memset)(void *s, int c, size_t n);
 ssize_t (*real_read)(int fd, void *buf, size_t count);
 ssize_t (*real_write)(int fd, const void *buf, size_t count);
@@ -47,9 +44,7 @@ void fuzzywuzzy_preload_hooks(void) {
     LOAD(socket);
     LOAD(abort);
     LOAD(strlen);
-    LOAD(bind);
-    LOAD(listen);
-    LOAD(accept);
+    LOAD(connect);
     LOAD(memset);
     LOAD(read);
     LOAD(write);

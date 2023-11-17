@@ -57,7 +57,6 @@ class Harness3:
                 }
 
             msg = self._read_message()
-            print(time.time() - start)
 
             if msg["msg_type"] == MSG_TARGET_RESET:
                 duration = time.time() - start
@@ -95,7 +94,9 @@ class Harness3:
         if os.path.exists(socket_path):
             os.remove(socket_path)
 
-        print(socket_path)
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(socket_path)
+        self.server.listen(1)
 
         self.process = Popen(
             self.binary_path.absolute(),
@@ -105,10 +106,7 @@ class Harness3:
             env={"LD_PRELOAD": "./harness.so", "FUZZYWUZZY_SOCKET_PATH": socket_path},
         )
 
-        time.sleep(1)
-
-        self.connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.connection.connect(socket_path)
+        self.connection, _ = self.server.accept()
 
         self.open = True
 
