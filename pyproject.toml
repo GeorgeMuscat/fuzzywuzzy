@@ -18,7 +18,6 @@ click = "^8.1.7"
 python-magic = "^0.4.27"
 rich = "^13.7.0"
 makeelf = "^0.3.4"
-lief = "^0.13.2"
 
 [tool.poetry.scripts]
 fuzzywuzzy = 'fuzzer:cli'
