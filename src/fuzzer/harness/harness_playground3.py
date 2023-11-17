@@ -101,8 +101,8 @@ class Harness3:
         self.process = Popen(
             self.binary_path.absolute(),
             stdin=PIPE,
-            stdout=DEVNULL,
-            stderr=DEVNULL,
+            stdout=None,
+            stderr=None,
             env={"LD_PRELOAD": "./harness.so", "FUZZYWUZZY_SOCKET_PATH": socket_path},
         )
 
