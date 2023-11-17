@@ -1,6 +1,7 @@
 from datetime import datetime
 from math import e
 import time
+import sys
 from typing import Iterator, TypeVar, BinaryIO
 from pathlib import Path
 from rich.panel import Panel

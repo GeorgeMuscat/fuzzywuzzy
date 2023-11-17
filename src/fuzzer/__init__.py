@@ -1,13 +1,14 @@
 import os
 from pathlib import Path
+import sys
 from typing import BinaryIO, Optional
 
 import click
 import magic
+import signal
 
 from fuzzer.harness import Harness
 from fuzzer.utils import round_robin, Reporter
-
 from .hunters import MIME_TYPE_TO_HUNTERS
 
 reporter = None
@@ -29,6 +30,16 @@ def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
     global reporter
     reporter = Reporter(binary)
+
+    def signal_handler(sig, frame):
+        """
+        Need this so that rich doesn't break the terminal cursor
+        """
+        reporter.reset_console() if reporter != None else None
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     result = fuzz(binary, sample_input)
     if result is not None:
         reporter.print_crash_output(100.3, -11, [("idk", 1000)])
@@ -51,7 +62,6 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
         )
 
     harness = Harness(binary)
-
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
 
@@ -66,4 +76,5 @@ def sanity():
 
 
 if __name__ == "__main__":
+    print("You pressed Ctrl+C!")
     cli()

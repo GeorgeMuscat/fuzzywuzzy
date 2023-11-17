@@ -49,12 +49,14 @@ class InProcessHarness(Harness):
 
         while True:
             exit_code = self.process.poll()
+
             if exit_code is not None:
                 self.open = False
                 if exit_code >= 0:
                     raise HarnessException("fuck the harness crashed...")
 
                 duration = time.time() - start
+
                 return {
                     "duration": duration,
                     "exit_code": exit_code,
@@ -62,6 +64,7 @@ class InProcessHarness(Harness):
                 }
 
             msg = self._read_message()
+            print(msg)
 
             if msg is None:
                 continue
