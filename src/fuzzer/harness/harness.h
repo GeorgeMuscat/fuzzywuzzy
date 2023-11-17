@@ -1,7 +1,8 @@
 #pragma once
 
-#include "socket.h"
 #include <ucontext.h>
+
+#include "socket.h"
 
 #define BUF_SIZE 8192
 #define NUM_MMAPS 32
@@ -12,19 +13,17 @@
 
 #define CTRL_OFFSET "0x7c"  // if everything stop working, check this
 
-#define save_ra() \
-void *ra = NULL;\
-__asm__(\
-        "mov %[asm_ra], [ebp+4]\n"\
-        : [asm_ra] "=&r" (ra)\
-)
+#define save_ra()                  \
+    void *ra = NULL;               \
+    __asm__(                       \
+        "mov %[asm_ra], [ebp+4]\n" \
+        : [asm_ra] "=&r"(ra))
 
-#define save_ebx() \
-void *ebx = NULL;\
-__asm__(\
-        "mov %[asm_ra], [ebx]\n"\
-        : [asm_ra] "=&r" (ra)\
-)
+#define save_ebx()               \
+    void *ebx = NULL;            \
+    __asm__(                     \
+        "mov %[asm_ra], [ebx]\n" \
+        : [asm_ra] "=&r"(ra))
 
 struct mmap_data {
     void *addr;
@@ -54,7 +53,7 @@ struct control_data {
     void *writable_saved_base;
     void *writable_saved_curr;
 
-    void* signals[NUM_SIGNALS];
+    void *signals[NUM_SIGNALS];
 
     size_t mmap_index;
     struct mmap_data mmaps[NUM_MMAPS];
@@ -76,5 +75,5 @@ void fuzzywuzzy_log_start();
 void fuzzywuzzy_log_reset(int exit_code);
 void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr);
 
-void fuzzywuzzy_reset(int exit_code);
+void fuzzywuzzy_restore();
 void fuzzywuzzy_user_reset(int exit_code);

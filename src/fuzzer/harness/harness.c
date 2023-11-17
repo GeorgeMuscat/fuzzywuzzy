@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdio_ext.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -49,7 +50,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         //region C
         fuzzywuzzy_preload_hooks();
         REAL(puts, "preload");
-        fuzzywuzzy_reset(0);
+        fuzzywuzzy_restore();
         REAL(puts, "reset");
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         REAL(puts, "init socket");
@@ -121,21 +122,12 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
 
     __asm__("jmp fuzzywuzzy_first_run\n");
 
-    __asm__("fuzzywuzzy_saved:\n");
+    __asm__("fuzzywuzzy_reset_point:\n");
     fuzzywuzzy_user_reset(fuzzywuzzy_ctrl.last_exit_code);
     __asm__("fuzzywuzzy_first_run:\n");
 
-
-
-
-    //char buf[64];
-    //while (REAL(read, STDIN, buf, 64) != 0)
-    //__fpurge(stdin);
     // this code will be run on every execution of the program
-    //region C
     fuzzywuzzy_log_start();
-    //endregion
-
     int exit_code = fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
     fuzzywuzzy_ctrl.last_exit_code = exit_code;
     setcontext(&fuzzywuzzy_ctrl.context);
@@ -169,10 +161,17 @@ void fuzzywuzzy_log_reset(int exit_code) {
     fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
 
+/**
+ * Performs operations to reset program state other than memory restoration.
+ */
 void fuzzywuzzy_user_reset(int exit_code) {
-    fuzzywuzzy_log_reset(0);
+    // Logs reset event to socket connection.
+    fuzzywuzzy_log_reset(exit_code);
 
-    // do reset things here
+    // Flush stdin stream.
+    __fpurge(stdin);
+
+    // Resets signal handlers.
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
             fuzzywuzzy_ctrl.signals[i] = false;
@@ -180,6 +179,7 @@ void fuzzywuzzy_user_reset(int exit_code) {
         }
     }
 
+    // Unmaps memory regions.
     for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
         if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
             REAL(munmap, fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
@@ -187,15 +187,12 @@ void fuzzywuzzy_user_reset(int exit_code) {
     }
 
     fuzzywuzzy_ctrl.mmap_index = 0;
-
-
 }
 
 /**
- * Reset program state, equivalent to re-running program. This will automatically re-invoke main
- * Can be called as a regular C function from anywhere
+ * Restore program state to be equivalent to program start. Should be used via setcontext and only called as a function for setup.
  */
-__attribute__ ((noinline)) void fuzzywuzzy_reset(int exit_code) {
+__attribute__ ((noinline)) void fuzzywuzzy_restore() {
     if (fuzzywuzzy_ctrl.dummy_malloc == NULL) {
         getcontext(&fuzzywuzzy_ctrl.context);
         fuzzywuzzy_ctrl.context.uc_mcontext.gregs[14] += 0x23;
@@ -244,7 +241,7 @@ __attribute__ ((noinline)) void fuzzywuzzy_reset(int exit_code) {
             "mov edi, [eax + 0x1c]\n"
             );
 
-    __asm__("jmp fuzzywuzzy_saved\n");
+    __asm__("jmp fuzzywuzzy_reset_point\n");
 
     // this never runs, but silences the no return warning
     for(;;);

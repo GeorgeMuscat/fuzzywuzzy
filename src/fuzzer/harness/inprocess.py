@@ -4,8 +4,9 @@ import threading
 import time
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen
-from tkinter import N
 from typing import Optional, TypedDict
+
+from .base import Harness
 
 TIMEOUT = 1
 
@@ -22,7 +23,7 @@ class FuzzerMessage(TypedDict):
     data: dict[str, int]
 
 
-class Harness3:
+class InProcessHarness(Harness):
     process: Popen
     connection: socket.socket
     open: bool
@@ -108,9 +109,12 @@ class Harness3:
         self.process = Popen(
             self.binary_path.absolute(),
             stdin=PIPE,
-            stdout=PIPE,
+            stdout=DEVNULL,
             stderr=DEVNULL,
-            env={"LD_PRELOAD": "./harness.so", "FUZZYWUZZY_SOCKET_PATH": socket_path},
+            env={
+                "LD_PRELOAD": "./src/fuzzer/harness/harness.so",
+                "FUZZYWUZZY_SOCKET_PATH": socket_path,
+            },
         )
 
         self.connection, _ = self.server.accept()
@@ -183,8 +187,6 @@ class Harness3:
                 f"received unexpected message type {msg_type}"
             )
 
-        print({"msg_type": msg_type, "data": data})
-
         return {"msg_type": msg_type, "data": data}
 
     def _write_message(self, msg_type: int, data: dict[str, int] = {}):
@@ -198,7 +200,6 @@ class Harness3:
                 f"did not expect to send message type {msg_type}"
             )
         elif msg_type in [MSG_ACK, MSG_INPUT_RESPONSE]:
-            print({"msg_type": msg_type, "data": data})
             self._write_uint8_t(msg_type)
             if msg_type == MSG_ACK:
                 pass
@@ -208,10 +209,6 @@ class Harness3:
             raise UnknownMessageTypeException(
                 f"tried to send unexpected message type {msg_type}"
             )
-
-    def _await_reset(self):
-        msg = self._read_message()
-        assert msg["msg_type"] == MSG_TARGET_RESET
 
     def _await_start(self):
         msg = self._read_message()
@@ -233,7 +230,7 @@ class UnknownMessageTypeException(HarnessException):
     pass
 
 
-harness = Harness3(Path("../../../tests/binaries/fuzz_targets/plaintext2"))
-print("result 1:", harness.run(b"hi\n"))
-print("result 1:", harness.run(b"trivial\n2\n"))
-print("result 2:", harness.run(b"trivial\n-1\n"))
+def main():
+    harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
+    print("result 1:", harness.run(b"trivial\n2\n"))
+    print("result 2:", harness.run(b"trivial\n-524288\n"))
