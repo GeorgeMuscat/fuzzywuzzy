@@ -24,24 +24,24 @@ extern GEN_DEF(int close, int fd);
 extern GEN_DEF(int puts, const_char_ptr s);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
-    char *path = REAL(getenv, SOCKET_PATH_ENVVAR);
+    char *path = REAL(getenv)(SOCKET_PATH_ENVVAR);
     if (path == NULL) {
-        REAL(abort);
+        REAL(abort)();
     }
 
     struct sockaddr_un remote;
     remote.sun_family = AF_UNIX;
-    REAL(strcpy, remote.sun_path, path);
+    REAL(strcpy)(remote.sun_path, path);
 
-    int sock_fd = REAL(socket, AF_UNIX, SOCK_STREAM, 0);
+    int sock_fd = REAL(socket)(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd < 0) {
-        REAL(abort);
+        REAL(abort)();
     }
 
-    int remote_len = sizeof(remote.sun_family) + REAL(strlen, remote.sun_path) + 2;
-    int result = REAL(connect, sock_fd, (struct sockaddr *)&remote, remote_len);
+    int remote_len = sizeof(remote.sun_family) + REAL(strlen)(remote.sun_path) + 2;
+    int result = REAL(connect)(sock_fd, (struct sockaddr *)&remote, remote_len);
     if (result < 0) {
-        REAL(abort);
+        REAL(abort)();
     }
 
     sock->conn_fd = sock_fd;
@@ -54,9 +54,9 @@ void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
  * @return status (negative for error, 0 on success)
  */
 int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *msg) {
-    REAL(memset, msg, 0, sizeof(struct fuzzer_msg_t));
+    REAL(memset)(msg, 0, sizeof(struct fuzzer_msg_t));
 
-    REAL(read, sock->conn_fd, &msg->msg_type, 1);
+    REAL(read)(sock->conn_fd, &msg->msg_type, 1);
     switch (msg->msg_type) {
         case MSG_ACK:
             break;
@@ -68,7 +68,7 @@ int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *m
             // Unexpected message type.
             return -1;
         case MSG_INPUT_RESPONSE:
-            REAL(read, sock->conn_fd, &msg->data.input_response.can_satisfy, 1);
+            REAL(read)(sock->conn_fd, &msg->data.input_response.can_satisfy, 1);
             break;
         default:
             // Unknown message type.
@@ -110,9 +110,9 @@ int fuzzywuzzy_write_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *
             return -2;
     }
 
-    REAL(write, sock->conn_fd, &msg->msg_type, 1);
+    REAL(write)(sock->conn_fd, &msg->msg_type, 1);
     if (data_size) {
-        REAL(write, sock->conn_fd, &msg->data, data_size);
+        REAL(write)(sock->conn_fd, &msg->data, data_size);
     }
 
     return 0;
@@ -126,10 +126,10 @@ void fuzzywuzzy_expect_ack(struct fuzzer_socket_t *sock) {
     fuzzywuzzy_read_message(sock, &msg);
 
     if (msg.msg_type != MSG_ACK) {
-        REAL(abort);
+        REAL(abort)();
     }
 }
 
 void fuzzywuzzy_close_socket(struct fuzzer_socket_t *sock) {
-    REAL(close, sock->conn_fd);
+    REAL(close)(sock->conn_fd);
 }

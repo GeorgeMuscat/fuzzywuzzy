@@ -49,11 +49,11 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
-        fuzzywuzzy_reset(0);
+        fuzzywuzzy_restore(0);
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
         // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
-        fuzzywuzzy_ctrl.dummy_malloc = REAL(malloc, 0x8); //lolxd
+        fuzzywuzzy_ctrl.dummy_malloc = REAL(malloc)(0x8); //lolxd
         fuzzywuzzy_read_mmap();
     }
 
@@ -132,7 +132,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
  */
 void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr) {
     struct fuzzer_msg_t msg = {.msg_type = MSG_LIBC_CALL, .data = {.libc_call = {"", return_addr}}};
-    REAL(strcpy, msg.data.libc_call.func_name, func_name);
+    REAL(strcpy)(msg.data.libc_call.func_name, func_name);
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
     fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
@@ -169,14 +169,14 @@ void fuzzywuzzy_user_reset(int exit_code) {
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
             fuzzywuzzy_ctrl.signals[i] = false;
-            REAL(signal, i, SIG_DFL);
+            REAL(signal)(i, SIG_DFL);
         }
     }
 
     // Unmaps memory regions.
     for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
         if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
-            REAL(munmap, fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
+            REAL(munmap)(fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
         }
     }
 
@@ -256,7 +256,7 @@ typedef enum parse_state {
  * Ensure malloc has been called at least once before calling this function
  */
 void fuzzywuzzy_read_mmap() {
-    int fd = REAL(open, "/proc/self/maps", O_RDONLY);
+    int fd = REAL(open)("/proc/self/maps", O_RDONLY);
 
     void *base = NULL;
     void *top = NULL;
@@ -272,7 +272,7 @@ void fuzzywuzzy_read_mmap() {
 
     char *buf = fuzzywuzzy_ctrl.buf;
 
-    REAL(read, fd, buf, BUF_SIZE); //TODO: BUFFERED READ
+    REAL(read)(fd, buf, BUF_SIZE); //TODO: BUFFERED READ
 
 
     parse_state_t state = PARSE_STATE_ADDRS;
@@ -282,12 +282,12 @@ void fuzzywuzzy_read_mmap() {
             case PARSE_STATE_ADDRS:
                 if (buf[i] == '-') {
                     buf[i] = 0;
-                    base = (void *) (REAL(strtoul, &buf[marker], NULL, 16));
+                    base = (void *) (REAL(strtoul)(&buf[marker], NULL, 16));
                     buf[i] = '-';
                     marker = i + 1;
                 } else if (buf[i] == ' ') {
                     buf[i] = 0;
-                    top = (void *) (REAL(strtoul, &buf[marker], NULL, 16));
+                    top = (void *) (REAL(strtoul)(&buf[marker], NULL, 16));
                     buf[i] = ' ';
                     marker = i + 1;
                     state = PARSE_STATE_PROT;
@@ -304,7 +304,7 @@ void fuzzywuzzy_read_mmap() {
             case PARSE_STATE_OFFSET:
                 if (buf[i] == ' ') {
                     buf[i] = 0;
-                    offset = REAL(strtoul, &buf[marker], NULL, 16);
+                    offset = REAL(strtoul)(&buf[marker], NULL, 16);
                     buf[i] = ' ';
                     state = PARSE_STATE_DEVICE;
                     marker = i + 1;
@@ -349,9 +349,9 @@ void fuzzywuzzy_read_mmap() {
 
 
             if (should_save) {
-                if (REAL(strncmp, &buf[name_start], heap_str, 6) == 0) {
+                if (REAL(strncmp)(&buf[name_start], heap_str, 6) == 0) {
                     heap_save_index = fuzzywuzzy_ctrl.writable_index;
-                    top = (void*)fuzzywuzzy_ctrl.dummy_malloc + REAL(malloc_usable_size, (void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
+                    top = (void*)fuzzywuzzy_ctrl.dummy_malloc + REAL(malloc_usable_size)((void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
                     // size is slightly bigger, just to ensure we capture the next pointer
                 }
                 fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index] =
@@ -367,7 +367,7 @@ void fuzzywuzzy_read_mmap() {
         }
     }
 
-    fuzzywuzzy_ctrl.writable_saved_base = REAL(mmap, (void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    fuzzywuzzy_ctrl.writable_saved_base = REAL(mmap)((void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     fuzzywuzzy_ctrl.writable_saved_curr = fuzzywuzzy_ctrl.writable_saved_base;
     for (int i = 0; i < fuzzywuzzy_ctrl.writable_index; i++) {
@@ -375,7 +375,7 @@ void fuzzywuzzy_read_mmap() {
         fuzzywuzzy_ctrl.writable_saved_curr += fuzzywuzzy_ctrl.writable[i].size;
     }
 
-    REAL(close, fd);
+    REAL(close)(fd);
 }
 
 

@@ -88,7 +88,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
 
-    void *res = REAL(mmap, addr, length, prot, flags, fd, offset);
+    void *res = REAL(mmap)(addr, length, prot, flags, fd, offset);
 
     fuzzywuzzy_ctrl.mmaps[fuzzywuzzy_ctrl.mmap_index++] = (struct mmap_data){res, length};
 
@@ -100,7 +100,7 @@ int munmap(void *addr, size_t length) {
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
 
-    int res = REAL(munmap, addr, length);
+    int res = REAL(munmap)(addr, length);
 
     for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
         if (fuzzywuzzy_ctrl.mmaps[i].addr == addr) {
@@ -122,7 +122,7 @@ void (*signal(int sig, void (*func)(int)))(int) {
 
     fuzzywuzzy_ctrl.signals[sig] = func;
 
-    return REAL(signal, sig, func);
+    return REAL(signal)(sig, func);
 }
 
 int *__libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void), void (*fini)(void),
@@ -130,13 +130,13 @@ int *__libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_
     LOAD_GUARD(__libc_start_main);
 
     if (fuzzywuzzy_ctrl.original_main_fn != NULL) {
-        REAL(puts, "WARNING: LIBC START MAIN TWICE, THIS WILL BREAK THE HARNESS");
-        REAL(abort);
+        REAL(puts)("WARNING: LIBC START MAIN CALLED TWICE, THIS WILL BREAK THE HARNESS");
+        REAL(abort)();
     }
 
     fuzzywuzzy_ctrl.original_main_fn = main;
 
-    return REAL(__libc_start_main, fuzzywuzzy_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
+    return REAL(__libc_start_main)(fuzzywuzzy_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
 }
 
 int printf(const char *format, ...) {
