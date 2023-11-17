@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <string.h>
 #include <malloc.h>
+#include <ucontext.h>
 
 #include "harness.h"
 #include "socket.h"
@@ -20,6 +21,9 @@ const char *harness_str = "harness.so";
 //do not use realloc or free ANYWHERE
 
 extern GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset);
+extern GEN_DEF(void puts, const_char_ptr s);
+extern void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
+extern GEN_DEF(int munmap, void_ptr addr, size_t length);
 
 struct control_data fuzzywuzzy_ctrl = {0};
 /**
@@ -30,11 +34,14 @@ struct control_data fuzzywuzzy_ctrl = {0};
  * @return *does not return*
  */
 int fuzzywuzzy_main(int argc, char **argv, char **environ) {
+
     if (!fuzzywuzzy_ctrl.dummy_malloc) {
+        //
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
-        fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
+        fuzzywuzzy_reset(0);
+        //fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
         // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
         fuzzywuzzy_ctrl.dummy_malloc = malloc(0x8); //lolxd
@@ -98,10 +105,27 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             );
 
 
+    //fuzzywuzzy_reset(0);
+
     __asm__("fuzzywuzzy_saved:\n");
+    for (int i = 0; i < NUM_SIGNALS; i++) {
+        if (fuzzywuzzy_ctrl.signals[i]) {
+            fuzzywuzzy_ctrl.signals[i] = NULL;
+            REAL(signal, i, SIG_DFL);
+        }
+    }
+
+    for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
+        if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
+            REAL(munmap, fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
+        }
+    }
+
+
+    fuzzywuzzy_ctrl.mmap_index = 0;
     // this code will be run on every execution of the program
     //region C
-    fuzzywuzzy_log_start();
+    //fuzzywuzzy_log_start();
     //endregion
 
     int exit_code = fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
@@ -112,6 +136,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
  * Logs a call to libc to the current socket connection.
  */
 void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr) {
+    return;
     struct fuzzer_msg_t msg = {.msg_type = MSG_LIBC_CALL, .data = {.libc_call = {"", return_addr}}};
     strcpy(msg.data.libc_call.func_name, func_name);
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
@@ -140,27 +165,15 @@ void fuzzywuzzy_log_reset(int exit_code) {
  * Reset program state, equivalent to re-running program. This will automatically re-invoke main
  * Can be called as a regular C function from anywhere
  */
-_Noreturn void fuzzywuzzy_reset(int exit_code) {
-    fuzzywuzzy_log_reset(exit_code);
-
-    char buf[64];
-    while (read(STDIN, buf, 64) != 0)
-
-    for (int i = 0; i < NUM_SIGNALS; i++) {
-        if (fuzzywuzzy_ctrl.signals[i]) {
-            fuzzywuzzy_ctrl.signals[i] = false;
-            signal(i, SIG_DFL);
-        }
-    }
-
-    for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
-        if (fuzzywuzzy_ctrl.mmaps[i].addr != NULL) {
-            munmap(fuzzywuzzy_ctrl.mmaps[i].addr, fuzzywuzzy_ctrl.mmaps[i].len);
-        }
+__attribute__ ((noinline)) void fuzzywuzzy_reset(int exit_code) {
+    if (fuzzywuzzy_ctrl.dummy_malloc == NULL) {
+        REAL(puts, "get context");
+        getcontext(&fuzzywuzzy_ctrl.context);
+        fuzzywuzzy_ctrl.context.uc_mcontext.gregs[14] += 0x23;
+        return;
     }
 
 
-    fuzzywuzzy_ctrl.mmap_index = 0;
     // nuke writable memory regions
     __asm__(
             "mov edi, 0\n"                                                  // i = 0 [ctrl.writable]
@@ -312,7 +325,6 @@ void fuzzywuzzy_read_mmap() {
             if (prot[1] != 'w') {
                 should_save = false;
             }
-
 
 
             if (should_save) {

@@ -15,6 +15,7 @@ typedef const void *const_void_ptr;
 typedef char* char_ptr;
 typedef const char* const_char_ptr;
 typedef const struct sockaddr * const_sockaddr_ptr;
+typedef unsigned int uint;
 
 #define LPAREN (
 #define RPAREN )
@@ -39,6 +40,7 @@ typedef const struct sockaddr * const_sockaddr_ptr;
 #define SPLIT_ssize_t LPAREN ssize_t COMMA
 #define SPLIT_off_t LPAREN off_t COMMA
 #define SPLIT_va_list LPAREN va_list COMMA
+#define SPLIT_uint LPAREN unsigned int COMMA
 
 
 #define CAT(arg1, arg2)   CAT1(arg1, arg2)
@@ -72,8 +74,6 @@ EXTRACT_TYPE(FN_SIG) (CAT(*fuzzywuzzy_real_, EXTRACT_NAME(FN_SIG)))(__VA_ARGS__)
 GEN_DEF(FN_SIG, __VA_ARGS__)\
 FN_SIG (__VA_ARGS__) {\
     LOAD_GUARD(EXTRACT_NAME(FN_SIG));   \
-    save_ra();                          \
-    fuzzywuzzy_log_libc_call(__func__, ra); \
     return (*CAT(fuzzywuzzy_real_, EXTRACT_NAME(FN_SIG)))(FOR_EACH(EXTRACT_NAME, __VA_ARGS__)); \
 }
 void fuzzywuzzy_preload_hooks(void);

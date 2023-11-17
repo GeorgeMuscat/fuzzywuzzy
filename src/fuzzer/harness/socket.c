@@ -17,7 +17,7 @@ extern GEN_DEF(void abort);
 extern GEN_DEF(size_t strlen, const_char_ptr s);
 extern GEN_DEF(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen);
 extern GEN_DEF(void_ptr memset, void_ptr s, int c, size_t n);
-extern GEN_DEF(ssize_t read, int fd, void *buf, size_t count);
+extern GEN_DEF(ssize_t read, int fd, void_ptr buf, size_t count);
 extern GEN_DEF(ssize_t write, int fd, const_void_ptr buf, size_t count);
 extern GEN_DEF(int close, int fd);
 

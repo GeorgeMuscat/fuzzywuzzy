@@ -1,6 +1,7 @@
 #pragma once
 
 #include "socket.h"
+#include <ucontext.h>
 
 #define BUF_SIZE 8192
 #define NUM_MMAPS 32
@@ -9,12 +10,19 @@
 
 #define MMAP_BASE 0x20000000
 
-#define CTRL_OFFSET "0xbc"  // if everything stop working, check this
+#define CTRL_OFFSET "0x7c"  // if everything stop working, check this
 
 #define save_ra() \
 void *ra = NULL;\
 __asm__(\
         "mov %[asm_ra], [ebp+4]\n"\
+        : [asm_ra] "=&r" (ra)\
+)
+
+#define save_ebx() \
+void *ebx = NULL;\
+__asm__(\
+        "mov %[asm_ra], [ebx]\n"\
         : [asm_ra] "=&r" (ra)\
 )
 
@@ -46,7 +54,7 @@ struct control_data {
     void *writable_saved_base;
     void *writable_saved_curr;
 
-    bool signals[NUM_SIGNALS];
+    void* signals[NUM_SIGNALS];
 
     size_t mmap_index;
     struct mmap_data mmaps[NUM_MMAPS];
@@ -54,8 +62,10 @@ struct control_data {
     int (*original_main_fn)(int, char **, char **);
 
     char buf[BUF_SIZE];
-    int *dummy_malloc;
+    volatile int *dummy_malloc;
     struct fuzzer_socket_t sock;
+
+    ucontext_t context;
 };
 
 int fuzzywuzzy_main(int argc, char **argv, char **environ);

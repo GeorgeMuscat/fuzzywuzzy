@@ -5,8 +5,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <ucontext.h>
 
 #include "harness.h"
+#include <ucontext.h>
 
 GEN_WRAPPER(int close, int fd)
 
@@ -25,7 +27,8 @@ GEN_DEF(void abort)
 GEN_DEF(void exit, int status)
 GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset)
 GEN_DEF(int munmap, void_ptr addr, size_t length)
-GEN_DEF(int vprintf, const_char_ptr format, va_list ap)
+GEN_DEF(uint alarm, uint seconds);
+//GEN_DEF(int vprintf, const_char_ptr format, va_list ap)
 
 
 void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
@@ -56,7 +59,8 @@ void fuzzywuzzy_preload_hooks(void) {
 }
 
 _Noreturn void exit(int status) {
-    LOAD_GUARD(exit)
+    LOAD_GUARD(exit);
+    setcontext(&fuzzywuzzy_ctrl.context);
     fuzzywuzzy_reset(status);
 
     REAL(exit, status);
@@ -77,7 +81,7 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 }
 
 int munmap(void *addr, size_t length) {
-    LOAD_GUARD(munmap)
+    LOAD_GUARD(munmap);
 
     int res = REAL(munmap, addr, length);
 
@@ -97,7 +101,7 @@ int munmap(void *addr, size_t length) {
 void (*signal(int sig, void (*func)(int)))(int) {
     LOAD_GUARD(signal);
 
-    fuzzywuzzy_ctrl.signals[sig] = true;
+    fuzzywuzzy_ctrl.signals[sig] = func;
 
     return REAL(signal, sig, func);
 }
@@ -119,7 +123,7 @@ int *__libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_
 
 
 int printf(const char *format, ...) {
-    LOAD_GUARD(vprintf);
+    //LOAD_GUARD(vprintf);
 
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
@@ -129,4 +133,11 @@ int printf(const char *format, ...) {
     int res = vprintf(format, list);
     va_end(list);
     return res;
+}
+
+
+unsigned int alarm(unsigned int seconds) {
+    LOAD_GUARD(alarm);
+
+    return REAL(alarm, seconds);
 }
