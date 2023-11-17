@@ -4,44 +4,47 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <errno.h>
 
-// #include "harness.h"
+#include "hooks.h"
+
+extern GEN_DEF(char_ptr getenv, const_char_ptr name) extern GEN_DEF(char_ptr strcpy, char_ptr dest, const_char_ptr src);
+extern GEN_DEF(int socket, int domain, int type, int protocol);
+extern GEN_DEF(void abort);
+extern GEN_DEF(size_t strlen, const_char_ptr s);
+extern GEN_DEF(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen);
+extern GEN_DEF(void_ptr memset, void_ptr s, int c, size_t n);
+extern GEN_DEF(ssize_t read, int fd, void_ptr buf, size_t count);
+extern GEN_DEF(ssize_t write, int fd, const_void_ptr buf, size_t count);
+extern GEN_DEF(int close, int fd);
+extern GEN_DEF(int puts, const_char_ptr s);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
-    char *path = getenv(SOCKET_PATH_ENVVAR);
+    char *path = REAL(getenv)(SOCKET_PATH_ENVVAR);
+    if (path == NULL) {
+        REAL(abort)();
+    }
 
-    struct sockaddr_un local;
     struct sockaddr_un remote;
-    local.sun_family = AF_UNIX;
-    strcpy(local.sun_path, path);
+    remote.sun_family = AF_UNIX;
+    REAL(strcpy)(remote.sun_path, path);
 
-    int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    int sock_fd = REAL(socket)(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd < 0) {
-        abort();
+        REAL(abort)();
     }
 
-    int local_len = sizeof(local.sun_family) + strlen(local.sun_path);
-    int bind_result = bind(sock_fd, (struct sockaddr *)&local, local_len);
-    if (bind_result < 0) {
-        abort();
+    int remote_len = sizeof(remote.sun_family) + REAL(strlen)(remote.sun_path) + 2;
+    int result = REAL(connect)(sock_fd, (struct sockaddr *)&remote, remote_len);
+    if (result < 0) {
+        REAL(abort)();
     }
 
-    // Begin listening for new connections.
-    // Only allow 1 connection, refuse all others.
-    listen(sock_fd, 0);
-
-    int remote_len = sizeof(remote);
-    int client_fd = accept(sock_fd, (struct sockaddr *)&remote, &remote_len);
-
-    if (client_fd < 0) {
-        abort();
-    }
-
-    sock->sock_fd = sock_fd;
-    sock->client_fd = client_fd;
+    sock->conn_fd = sock_fd;
 }
 
 /**
@@ -51,9 +54,9 @@ void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
  * @return status (negative for error, 0 on success)
  */
 int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *msg) {
-    memset(msg, 0, sizeof(struct fuzzer_msg_t));
+    REAL(memset)(msg, 0, sizeof(struct fuzzer_msg_t));
 
-    read(sock->client_fd, &msg->msg_type, 1);
+    REAL(read)(sock->conn_fd, &msg->msg_type, 1);
     switch (msg->msg_type) {
         case MSG_ACK:
             break;
@@ -65,7 +68,7 @@ int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *m
             // Unexpected message type.
             return -1;
         case MSG_INPUT_RESPONSE:
-            read(sock->client_fd, &msg->data.input_response.can_satisfy, 1);
+            REAL(read)(sock->conn_fd, &msg->data.input_response.can_satisfy, 1);
             break;
         default:
             // Unknown message type.
@@ -107,9 +110,9 @@ int fuzzywuzzy_write_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *
             return -2;
     }
 
-    write(sock->client_fd, &msg->msg_type, 1);
+    REAL(write)(sock->conn_fd, &msg->msg_type, 1);
     if (data_size) {
-        write(sock->client_fd, &msg->data, data_size);
+        REAL(write)(sock->conn_fd, &msg->data, data_size);
     }
 
     return 0;
@@ -123,11 +126,10 @@ void fuzzywuzzy_expect_ack(struct fuzzer_socket_t *sock) {
     fuzzywuzzy_read_message(sock, &msg);
 
     if (msg.msg_type != MSG_ACK) {
-        abort();
+        REAL(abort)();
     }
 }
 
 void fuzzywuzzy_close_socket(struct fuzzer_socket_t *sock) {
-    close(sock->sock_fd);
-    close(sock->client_fd);
+    REAL(close)(sock->conn_fd);
 }

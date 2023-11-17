@@ -1,64 +1,106 @@
+#define _GNU_SOURCE
 #include "hooks.h"
 
 #include <dlfcn.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <ucontext.h>
 
 #include "harness.h"
 
-void fuzzywuzzy_preload_hooks(void) {
-    *(void **)(&real_free) = dlsym(RTLD_NEXT, "free");
-    *(void **)(&real_exit) = dlsym(RTLD_NEXT, "exit");
-    *(void **)(&real_signal) = dlsym(RTLD_NEXT, "signal");
-    *(void **)(&real_mmap) = dlsym(RTLD_NEXT, "mmap");
-    *(void **)(&real_munmap) = dlsym(RTLD_NEXT, "munmap");
-    *(void **)(&real_libc_start_main) = dlsym(RTLD_NEXT, "__libc_start_main");
-    // *(void **)(&real_socket) = dlsym(RTLD_NEXT, "socket");
-    // *(void **)(&real_abort) = dlsym(RTLD_NEXT, "abort");
-}
+GEN_WRAPPER(int close, int fd)
 
-void free(void *ptr) {
-    if (!real_free) {
-        *(void **)(&real_free) = dlsym(RTLD_NEXT, __func__);
-    }
-    (*real_free)(ptr);
+GEN_WRAPPER(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen)
+GEN_WRAPPER(void free, void_ptr ptr)
+GEN_WRAPPER(char_ptr fgets, char_ptr str, int n, FILE_ptr stream);
+GEN_WRAPPER(char_ptr getenv, const_char_ptr name)
+GEN_WRAPPER(void_ptr malloc, size_t size)
+GEN_WRAPPER(size_t malloc_usable_size, void_ptr ptr)
+GEN_WRAPPER(void_ptr memset, void_ptr str, int c, size_t n)
+GEN_WRAPPER(int open, const_char_ptr pathname, int flags)
+GEN_WRAPPER(int puts, const_char_ptr s)
+GEN_WRAPPER(ssize_t read, int fd, void_ptr buf, size_t count)
+GEN_WRAPPER(int socket, int domain, int type, int protocol)
+
+GEN_WRAPPER(char_ptr strchr, const_char_ptr str, int c)
+GEN_WRAPPER(char_ptr strcpy, char_ptr dest, const_char_ptr src)
+GEN_WRAPPER(size_t strlen, const_char_ptr s)
+GEN_WRAPPER(int strncmp, const_char_ptr s1, const_char_ptr s2, size_t n)
+GEN_WRAPPER(unsigned_long strtoul, const_char_ptr nptr, char_ptr_ptr endptr, int base)
+GEN_WRAPPER(ssize_t write, int fd, const_void_ptr buf, size_t count)
+
+GEN_DEF(void abort)
+GEN_DEF(void exit, int status)
+GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset)
+GEN_DEF(int munmap, void_ptr addr, size_t length)
+GEN_DEF(int vprintf, const_char_ptr format, va_list ap)
+GEN_DEF(void_ptr malloc, size_t size)
+
+void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
+int *(*fuzzywuzzy_real___libc_start_main)(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void),
+                                          void (*fini)(void), void (*rtld_fini)(void), void(*stack_end));
+
+extern struct control_data fuzzywuzzy_ctrl;
+
+void fuzzywuzzy_preload_hooks(void) {
+    LOAD(free);
+    LOAD(exit);
+    LOAD(signal);
+    LOAD(mmap);
+    LOAD(munmap);
+    LOAD(__libc_start_main);
+    LOAD(puts);
+    LOAD(getenv);
+    LOAD(strcpy);
+    LOAD(socket);
+    LOAD(abort);
+    LOAD(strlen);
+    LOAD(connect);
+    LOAD(memset);
+    LOAD(read);
+    LOAD(write);
+    LOAD(close);
+    LOAD(open);
+    LOAD(strtoul);
+    LOAD(malloc_usable_size);
+    LOAD(strncmp);
+    LOAD(malloc);
 }
 
 _Noreturn void exit(int status) {
-    if (!real_exit) {
-        *(void **)(&real_exit) = dlsym(RTLD_NEXT, __func__);
-    }
-    fuzzywuzzy_reset(status);
+    LOAD_GUARD(exit)
+    save_ra();
+    fuzzywuzzy_log_libc_call(__func__, ra);
+    fuzzywuzzy_ctrl.last_exit_code = status;
 
-    (*real_exit)(status);
+    LOAD_GUARD(exit);
+    setcontext(&fuzzywuzzy_ctrl.context);
+
+    // this'll never return :)
+    for (;;)
+        ;
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
-    if (!real_mmap) {
-        *(void **)(&real_mmap) = dlsym(RTLD_NEXT, __func__);
-    }
+    LOAD_GUARD(mmap);
+    save_ra();
+    fuzzywuzzy_log_libc_call(__func__, ra);
 
-    void *res = (*real_mmap)(addr, length, prot, flags, fd, offset);
+    void *res = REAL(mmap)(addr, length, prot, flags, fd, offset);
 
     fuzzywuzzy_ctrl.mmaps[fuzzywuzzy_ctrl.mmap_index++] = (struct mmap_data){res, length};
 
     return res;
 }
 
-void *fuzzywuzzy_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
-    if (!real_mmap) {
-        *(void **)(&real_mmap) = dlsym(RTLD_NEXT, "mmap");
-    }
-
-    return (*real_mmap)(addr, length, prot, flags, fd, offset);
-}
-
 int munmap(void *addr, size_t length) {
-    if (!real_munmap) {
-        *(void **)(&real_munmap) = dlsym(RTLD_NEXT, __func__);
-    }
+    LOAD_GUARD(munmap)
+    save_ra();
+    fuzzywuzzy_log_libc_call(__func__, ra);
 
-    int res = (*real_munmap)(addr, length);
+    int res = REAL(munmap)(addr, length);
 
-    // todo: hashmap this shit (but its C, do we consider C++?)
     for (int i = 0; i < fuzzywuzzy_ctrl.mmap_index; i++) {
         if (fuzzywuzzy_ctrl.mmaps[i].addr == addr) {
             fuzzywuzzy_ctrl.mmaps[i].addr = NULL;
@@ -73,27 +115,38 @@ int munmap(void *addr, size_t length) {
 }
 
 void (*signal(int sig, void (*func)(int)))(int) {
-    if (!real_signal) {
-        *(void **)(&real_signal) = dlsym(RTLD_NEXT, __func__);
-    }
-    fuzzywuzzy_ctrl.signals[sig] = true;
-    printf("registering signal for %d\n", sig);
+    LOAD_GUARD(signal);
+    save_ra();
+    fuzzywuzzy_log_libc_call(__func__, ra);
 
-    return (*real_signal)(sig, func);
+    fuzzywuzzy_ctrl.signals[sig] = func;
+
+    return REAL(signal)(sig, func);
 }
 
 int *__libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void), void (*fini)(void),
                        void (*rtld_fini)(void), void(*stack_end)) {
-    if (!real_libc_start_main) {
-        *(void **)(&real_libc_start_main) = dlsym(RTLD_NEXT, __func__);
-    }
+    LOAD_GUARD(__libc_start_main);
 
     if (fuzzywuzzy_ctrl.original_main_fn != NULL) {
-        puts("WARNING: LIBC START MAIN TWICE, THIS WILL BREAK THE HARNESS");
-        abort();
+        REAL(puts)("WARNING: LIBC START MAIN CALLED TWICE, THIS WILL BREAK THE HARNESS");
+        REAL(abort)();
     }
 
     fuzzywuzzy_ctrl.original_main_fn = main;
 
-    return (*real_libc_start_main)(fuzzywuzzy_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
+    return REAL(__libc_start_main)(fuzzywuzzy_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
+}
+
+int printf(const char *format, ...) {
+    // LOAD_GUARD(vprintf);
+
+    save_ra();
+    fuzzywuzzy_log_libc_call(__func__, ra);
+
+    va_list list;
+    va_start(list, format);
+    int res = vprintf(format, list);
+    va_end(list);
+    return res;
 }

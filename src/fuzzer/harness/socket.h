@@ -15,8 +15,7 @@
 #define MSG_INPUT_RESPONSE 0x06
 
 struct fuzzer_socket_t {
-    int sock_fd;
-    int client_fd;
+    int conn_fd;
 };
 
 struct fuzzer_msg_t {
@@ -39,7 +38,7 @@ struct fuzzer_msg_t {
             char func_name[MAX_FUNCTION_NAME_LENGTH];
             // Location in the target binary that will be returned to.
             // Used for pseudo-coverage.
-            size_t return_addr;
+            void *return_addr;
         } libc_call;
         // 0x05 - requests a check from the fuzzer whether the current input will satisfy the current input request (e.g. fgets call)
         struct fuzzer_msg_input_required_t {
