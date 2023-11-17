@@ -18,6 +18,7 @@ const char *harness_str = "harness.so";
 
 //do not use realloc or free ANYWHERE
 
+extern void *(*real_mmap)(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
 
 struct control_data fuzzywuzzy_ctrl = {0};
 /**
@@ -199,7 +200,7 @@ _Noreturn void fuzzywuzzy_reset(int exit_code) {
     __asm__("jmp fuzzywuzzy_saved\n");
 
     // this never runs, but silences the no return warning
-    exit(1);
+    for(;;);
 }
 
 typedef enum parse_state {
@@ -329,7 +330,7 @@ void fuzzywuzzy_read_mmap() {
         }
     }
 
-    fuzzywuzzy_ctrl.writable_saved_base = fuzzywuzzy_mmap((void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    fuzzywuzzy_ctrl.writable_saved_base = (*real_mmap)((void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     fuzzywuzzy_ctrl.writable_saved_curr = fuzzywuzzy_ctrl.writable_saved_base;
     for (int i = 0; i < fuzzywuzzy_ctrl.writable_index; i++) {

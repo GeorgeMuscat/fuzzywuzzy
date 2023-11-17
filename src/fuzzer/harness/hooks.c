@@ -15,8 +15,6 @@ int *(*real_libc_start_main)(int (*main)(int, char **, char **), int argc, char 
                              void (*fini)(void), void (*rtld_fini)(void), void(*stack_end));
 int (*real_socket)(int domain, int type, int protocol);
 
-void *fuzzywuzzy_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-
 extern struct control_data fuzzywuzzy_ctrl;
 
 void fuzzywuzzy_preload_hooks(void) {
@@ -44,6 +42,8 @@ _Noreturn void exit(int status) {
     fuzzywuzzy_reset(status);
 
     (*real_exit)(status);
+
+    for(;;);
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
