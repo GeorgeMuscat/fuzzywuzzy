@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,6 +17,8 @@ const char *harness_str = "harness.so";
 
 //do not use realloc or free ANYWHERE
 
+
+struct control_data fuzzywuzzy_ctrl = {0};
 /**
  * Injected main function, this should only be passed to __libc_start_main, never called directly
  * @param argc target argc

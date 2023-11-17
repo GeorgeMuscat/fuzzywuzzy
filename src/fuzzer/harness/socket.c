@@ -7,8 +7,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <string.h>
 
 // #include "harness.h"
+
+extern int (*real_socket)(int domain, int type, int protocol);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
     char *path = getenv(SOCKET_PATH_ENVVAR);
@@ -18,7 +21,7 @@ void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
     local.sun_family = AF_UNIX;
     strcpy(local.sun_path, path);
 
-    int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    int sock_fd = (*real_socket)(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd < 0) {
         abort();
     }

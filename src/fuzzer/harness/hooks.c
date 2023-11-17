@@ -1,8 +1,23 @@
+#define _GNU_SOURCE
 #include "hooks.h"
+#include <stdio.h>
 
 #include <dlfcn.h>
 
 #include "harness.h"
+
+void (*real_free)(void *ptr);
+void (*real_exit)(int status);
+void *(*real_mmap)(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+int (*real_munmap)(void *addr, size_t length);
+void (*(*real_signal)(int, void (*func)(int)))(int);
+int *(*real_libc_start_main)(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void),
+                             void (*fini)(void), void (*rtld_fini)(void), void(*stack_end));
+int (*real_socket)(int domain, int type, int protocol);
+
+void *fuzzywuzzy_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
+
+extern struct control_data fuzzywuzzy_ctrl;
 
 void fuzzywuzzy_preload_hooks(void) {
     *(void **)(&real_free) = dlsym(RTLD_NEXT, "free");

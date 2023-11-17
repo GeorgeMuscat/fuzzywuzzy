@@ -51,8 +51,6 @@ struct control_data {
     struct fuzzer_socket_t sock;
 };
 
-struct control_data fuzzywuzzy_ctrl = {0};
-
 int fuzzywuzzy_main(int argc, char **argv, char **environ);
 void fuzzywuzzy_read_mmap();
 
