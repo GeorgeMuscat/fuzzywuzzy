@@ -12,6 +12,7 @@
 #include "socket.h"
 #include "hooks.h"
 
+#define STDIN 1
 
 const char *heap_str = "[heap]";
 const char *harness_str = "harness.so";
@@ -110,7 +111,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
 /**
  * Logs a call to libc to the current socket connection.
  */
-void fuzzywuzzy_log_libc_call(char *func_name, size_t return_addr) {
+void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr) {
     struct fuzzer_msg_t msg = {.msg_type = MSG_LIBC_CALL, .data = {.libc_call = {"", return_addr}}};
     strcpy(msg.data.libc_call.func_name, func_name);
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
@@ -121,7 +122,7 @@ void fuzzywuzzy_log_libc_call(char *func_name, size_t return_addr) {
  * Logs a start to the current socket connection.
  */
 void fuzzywuzzy_log_start() {
-    struct fuzzer_msg_t msg = {.msg_type = MSG_TARGET_RESET, .data = {}};
+    struct fuzzer_msg_t msg = {.msg_type = MSG_TARGET_START, .data = {}};
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
     fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
@@ -141,6 +142,9 @@ void fuzzywuzzy_log_reset(int exit_code) {
  */
 _Noreturn void fuzzywuzzy_reset(int exit_code) {
     fuzzywuzzy_log_reset(exit_code);
+
+    char buf[64];
+    while (read(STDIN, buf, 64) != 0)
 
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {

@@ -4,43 +4,54 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <string.h>
 
-// #include "harness.h"
-
+extern char *(*real_getenv)(const char *name);
+extern char *(*real_strcpy)(char *restrict dest, const char *src);
 extern int (*real_socket)(int domain, int type, int protocol);
+extern void (*real_abort)(void);
+extern size_t (*real_strlen)(const char *s);
+extern int (*real_bind)(int sockfd, const struct sockaddr *addr,
+                        socklen_t addrlen);
+extern int (*real_listen)(int sockfd, int backlog);
+extern int (*real_accept)(int sockfd, struct sockaddr *restrict addr,
+                          socklen_t *restrict addrlen);
+extern void *(*real_memset)(void *s, int c, size_t n);
+extern ssize_t (*real_read)(int fd, void *buf, size_t count);
+extern ssize_t (*real_write)(int fd, const void *buf, size_t count);
+extern int (*real_close)(int fd);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
-    char *path = getenv(SOCKET_PATH_ENVVAR);
+    char *path = (*real_getenv)(SOCKET_PATH_ENVVAR);
 
     struct sockaddr_un local;
     struct sockaddr_un remote;
     local.sun_family = AF_UNIX;
-    strcpy(local.sun_path, path);
+    (*real_strcpy)(local.sun_path, path);
 
     int sock_fd = (*real_socket)(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd < 0) {
-        abort();
+        (*real_abort)();
     }
 
-    int local_len = sizeof(local.sun_family) + strlen(local.sun_path);
-    int bind_result = bind(sock_fd, (struct sockaddr *)&local, local_len);
+    int local_len = sizeof(local.sun_family) + (*real_strlen)(local.sun_path);
+    int bind_result = (*real_bind)(sock_fd, (struct sockaddr *)&local, local_len);
     if (bind_result < 0) {
-        abort();
+        (*real_abort)();
     }
 
     // Begin listening for new connections.
     // Only allow 1 connection, refuse all others.
-    listen(sock_fd, 0);
+    (*real_listen)(sock_fd, 0);
 
     int remote_len = sizeof(remote);
-    int client_fd = accept(sock_fd, (struct sockaddr *)&remote, &remote_len);
+    int client_fd = (*real_accept)(sock_fd, (struct sockaddr *)&remote, &remote_len);
 
     if (client_fd < 0) {
-        abort();
+        (*real_abort)();
     }
 
     sock->sock_fd = sock_fd;
@@ -54,9 +65,9 @@ void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
  * @return status (negative for error, 0 on success)
  */
 int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *msg) {
-    memset(msg, 0, sizeof(struct fuzzer_msg_t));
+    (*real_memset)(msg, 0, sizeof(struct fuzzer_msg_t));
 
-    read(sock->client_fd, &msg->msg_type, 1);
+    (*real_read)(sock->client_fd, &msg->msg_type, 1);
     switch (msg->msg_type) {
         case MSG_ACK:
             break;
@@ -68,7 +79,7 @@ int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *m
             // Unexpected message type.
             return -1;
         case MSG_INPUT_RESPONSE:
-            read(sock->client_fd, &msg->data.input_response.can_satisfy, 1);
+            (*real_read)(sock->client_fd, &msg->data.input_response.can_satisfy, 1);
             break;
         default:
             // Unknown message type.
@@ -110,9 +121,9 @@ int fuzzywuzzy_write_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *
             return -2;
     }
 
-    write(sock->client_fd, &msg->msg_type, 1);
+    (*real_write)(sock->client_fd, &msg->msg_type, 1);
     if (data_size) {
-        write(sock->client_fd, &msg->data, data_size);
+        (*real_write)(sock->client_fd, &msg->data, data_size);
     }
 
     return 0;
@@ -126,11 +137,11 @@ void fuzzywuzzy_expect_ack(struct fuzzer_socket_t *sock) {
     fuzzywuzzy_read_message(sock, &msg);
 
     if (msg.msg_type != MSG_ACK) {
-        abort();
+        (*real_abort)();
     }
 }
 
 void fuzzywuzzy_close_socket(struct fuzzer_socket_t *sock) {
-    close(sock->sock_fd);
-    close(sock->client_fd);
+    (*real_close)(sock->sock_fd);
+    (*real_close)(sock->client_fd);
 }

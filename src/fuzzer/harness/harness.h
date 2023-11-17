@@ -63,6 +63,6 @@ void fuzzywuzzy_read_mmap();
 
 void fuzzywuzzy_log_start();
 void fuzzywuzzy_log_reset(int exit_code);
-void fuzzywuzzy_log_libc_call(char *func_name, size_t return_addr);
+void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr);
 
 void fuzzywuzzy_reset(int exit_code);
