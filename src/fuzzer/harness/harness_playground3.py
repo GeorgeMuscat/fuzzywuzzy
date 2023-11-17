@@ -4,7 +4,8 @@ import threading
 import time
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen
-from typing import TypedDict
+from tkinter import N
+from typing import Optional, TypedDict
 
 TIMEOUT = 1
 
@@ -49,9 +50,11 @@ class Harness3:
         while True:
             exit_code = self.process.poll()
             if exit_code is not None:
-                duration = time.time() - start
+                self.open = False
                 if exit_code >= 0:
                     raise HarnessException("fuck the harness crashed...")
+
+                duration = time.time() - start
                 return {
                     "duration": duration,
                     "exit_code": exit_code,
@@ -59,6 +62,9 @@ class Harness3:
                 }
 
             msg = self._read_message()
+
+            if msg is None:
+                continue
 
             if msg["msg_type"] == MSG_TARGET_RESET:
                 duration = time.time() - start
@@ -109,6 +115,7 @@ class Harness3:
         )
 
         self.connection, _ = self.server.accept()
+        self.connection.settimeout(0.2)
 
         self.open = True
 
@@ -125,7 +132,10 @@ class Harness3:
         return self.connection.recv(bytes)
 
     def _read_sized_int(self, bytes: int):
-        return int.from_bytes(self.connection.recv(bytes), byteorder="little")
+        b = self.connection.recv(bytes)
+        if len(b) != bytes:
+            return None
+        return int.from_bytes(b, byteorder="little")
 
     def _read_int(self):
         return self._read_sized_int(4)
@@ -145,9 +155,15 @@ class Harness3:
     def _write_bool(self, v: int):
         self._write_sized_int(v, 1)
 
-    def _read_message(self) -> FuzzerMessage:
-        msg_type = self._read_uint8_t()
+    def _read_message(self) -> Optional[FuzzerMessage]:
+        try:
+            msg_type = self._read_uint8_t()
+        except socket.timeout:
+            msg_type = None
         data = {}
+
+        if msg_type is None:
+            return None
 
         if msg_type in [MSG_ACK, MSG_INPUT_RESPONSE]:
             raise UnexpectedMessageTypeException(
@@ -200,7 +216,7 @@ class Harness3:
 
     def _await_start(self):
         msg = self._read_message()
-        assert msg["msg_type"] == MSG_TARGET_START
+        assert msg is not None and msg["msg_type"] == MSG_TARGET_START
 
     def _send_ack(self):
         self._write_message(MSG_ACK)
