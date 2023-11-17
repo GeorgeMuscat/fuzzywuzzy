@@ -5,6 +5,7 @@ from fuzzer.utils import round_robin
 from ..mutations.keywords import delete_keywords, repeat_keywords
 from ..mutations.bitflip import flip_byte_mutation
 from ..mutations.repeated_parts import repeat_segment
+from ..mutations.known_integers import known_bytes_mutation
 
 MARKERS = {
     "Start of Image": 0xFFD8.to_bytes(2, "big"),
@@ -21,14 +22,12 @@ MARKERS = {
 
 
 def region_hunter(from_marker: bytes, to_marker: bytes):
-    MUTATORS = [flip_byte_mutation]
+    MUTATORS = [flip_byte_mutation, repeat_segment, known_bytes_mutation]
 
     def inner(sample_input: bytes) -> Iterator[bytes]:
         before_region = sample_input.split(from_marker)[0] + from_marker
         after_region = to_marker + to_marker.join(sample_input.split(to_marker)[1:])
         region = sample_input[len(before_region) : len(sample_input) - len(after_region)]
-
-        print(len(region) * 256)
 
         for mutated_region in round_robin([mutator(region) for mutator in MUTATORS]):
             yield before_region + mutated_region + after_region

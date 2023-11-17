@@ -48,3 +48,19 @@ def known_integer_ascii_hex_with_prefix_mutation(
 ) -> Iterator[bytes]:
     for i in KNOWN_INTS:
         yield hex(i).encode()
+
+
+KNOWN_BYTES: list[int] = [
+    0x00,
+    0x7F,
+    0xFF,
+]
+
+
+def known_bytes_mutation(sample_input: bytes) -> Iterator[bytes]:
+    for i in range(len(sample_input)):
+        for j in KNOWN_BYTES:
+            mutated_bytes = list(sample_input)
+            mutated_bytes[i] = j.to_bytes()[0]
+            yield bytes(mutated_bytes)
+
