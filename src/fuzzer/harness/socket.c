@@ -1,5 +1,4 @@
 #include "socket.h"
-#include "hooks.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -10,8 +9,9 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-extern GEN_DEF(char_ptr getenv, const_char_ptr name)
-extern GEN_DEF(char_ptr strcpy, char_ptr dest, const_char_ptr src);
+#include "hooks.h"
+
+extern GEN_DEF(char_ptr getenv, const_char_ptr name) extern GEN_DEF(char_ptr strcpy, char_ptr dest, const_char_ptr src);
 extern GEN_DEF(int socket, int domain, int type, int protocol);
 extern GEN_DEF(void abort);
 extern GEN_DEF(size_t strlen, const_char_ptr s);
@@ -20,6 +20,7 @@ extern GEN_DEF(void_ptr memset, void_ptr s, int c, size_t n);
 extern GEN_DEF(ssize_t read, int fd, void_ptr buf, size_t count);
 extern GEN_DEF(ssize_t write, int fd, const_void_ptr buf, size_t count);
 extern GEN_DEF(int close, int fd);
+extern GEN_DEF(int puts, const_char_ptr s);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
     char *path = REAL(getenv, SOCKET_PATH_ENVVAR);

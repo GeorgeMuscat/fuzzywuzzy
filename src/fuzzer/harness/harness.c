@@ -20,12 +20,22 @@ const char *harness_str = "harness.so";
 
 //do not use realloc or free ANYWHERE
 
-extern GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset);
-extern GEN_DEF(void puts, const_char_ptr s);
+
+extern GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset)
+extern GEN_DEF(int open, const_char_ptr pathname, int flags)
+extern GEN_DEF(ssize_t read, int fd, void *buf, size_t count)
+extern GEN_DEF(int close, int fd)
+extern GEN_DEF(unsigned_long strtoul, const_char_ptr nptr, char_ptr_ptr endptr, int base)
+extern GEN_DEF(int puts, const_char_ptr s)
+extern GEN_DEF(size_t malloc_usable_size, void_ptr ptr)
+extern GEN_DEF(int strncmp, const_char_ptr s1, const_char_ptr s2, size_t n)
+extern GEN_DEF(char_ptr strcpy, char_ptr dest, const_char_ptr src)
+extern GEN_DEF(void_ptr malloc, size_t size)
+extern GEN_DEF(int munmap, void_ptr addr, size_t length)
 extern void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
-extern GEN_DEF(int munmap, void_ptr addr, size_t length);
 
 struct control_data fuzzywuzzy_ctrl = {0};
+
 /**
  * Injected main function, this should only be passed to __libc_start_main, never called directly
  * @param argc target argc
@@ -34,17 +44,15 @@ struct control_data fuzzywuzzy_ctrl = {0};
  * @return *does not return*
  */
 int fuzzywuzzy_main(int argc, char **argv, char **environ) {
-
     if (!fuzzywuzzy_ctrl.dummy_malloc) {
-        //
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
         fuzzywuzzy_reset(0);
-        //fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
+        fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
         // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
-        fuzzywuzzy_ctrl.dummy_malloc = malloc(0x8); //lolxd
+        fuzzywuzzy_ctrl.dummy_malloc = REAL(malloc, 0x8); //lolxd
         fuzzywuzzy_read_mmap();
     }
 
@@ -105,12 +113,13 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             );
 
 
-    //fuzzywuzzy_reset(0);
-
     __asm__("fuzzywuzzy_saved:\n");
+
+
+
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
-            fuzzywuzzy_ctrl.signals[i] = NULL;
+            fuzzywuzzy_ctrl.signals[i] = false;
             REAL(signal, i, SIG_DFL);
         }
     }
@@ -121,11 +130,12 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         }
     }
 
-
     fuzzywuzzy_ctrl.mmap_index = 0;
+    char buf[64];
+    while (REAL(read, STDIN, buf, 64) != 0)
     // this code will be run on every execution of the program
     //region C
-    //fuzzywuzzy_log_start();
+    fuzzywuzzy_log_start();
     //endregion
 
     int exit_code = fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
@@ -136,9 +146,8 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
  * Logs a call to libc to the current socket connection.
  */
 void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr) {
-    return;
     struct fuzzer_msg_t msg = {.msg_type = MSG_LIBC_CALL, .data = {.libc_call = {"", return_addr}}};
-    strcpy(msg.data.libc_call.func_name, func_name);
+    REAL(strcpy, msg.data.libc_call.func_name, func_name);
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
     fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
@@ -235,7 +244,7 @@ typedef enum parse_state {
  * Ensure malloc has been called at least once before calling this function
  */
 void fuzzywuzzy_read_mmap() {
-    int fd = open("/proc/self/maps", O_RDONLY);
+    int fd = REAL(open, "/proc/self/maps", O_RDONLY);
 
     void *base = NULL;
     void *top = NULL;
@@ -251,7 +260,7 @@ void fuzzywuzzy_read_mmap() {
 
     char *buf = fuzzywuzzy_ctrl.buf;
 
-    read(fd, buf, BUF_SIZE); //TODO: BUFFERED READ
+    REAL(read, fd, buf, BUF_SIZE); //TODO: BUFFERED READ
 
 
     parse_state_t state = PARSE_STATE_ADDRS;
@@ -261,12 +270,12 @@ void fuzzywuzzy_read_mmap() {
             case PARSE_STATE_ADDRS:
                 if (buf[i] == '-') {
                     buf[i] = 0;
-                    base = (void *) (strtoul(&buf[marker], NULL, 16));
+                    base = (void *) (REAL(strtoul, &buf[marker], NULL, 16));
                     buf[i] = '-';
                     marker = i + 1;
                 } else if (buf[i] == ' ') {
                     buf[i] = 0;
-                    top = (void *) (strtoul(&buf[marker], NULL, 16));
+                    top = (void *) (REAL(strtoul, &buf[marker], NULL, 16));
                     buf[i] = ' ';
                     marker = i + 1;
                     state = PARSE_STATE_PROT;
@@ -283,7 +292,7 @@ void fuzzywuzzy_read_mmap() {
             case PARSE_STATE_OFFSET:
                 if (buf[i] == ' ') {
                     buf[i] = 0;
-                    offset = strtoul(&buf[marker], NULL, 16);
+                    offset = REAL(strtoul, &buf[marker], NULL, 16);
                     buf[i] = ' ';
                     state = PARSE_STATE_DEVICE;
                     marker = i + 1;
@@ -328,9 +337,9 @@ void fuzzywuzzy_read_mmap() {
 
 
             if (should_save) {
-                if (strncmp(&buf[name_start], heap_str, 6) == 0) {
+                if (REAL(strncmp, &buf[name_start], heap_str, 6) == 0) {
                     heap_save_index = fuzzywuzzy_ctrl.writable_index;
-                    top = (void*)fuzzywuzzy_ctrl.dummy_malloc + malloc_usable_size((void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
+                    top = (void*)fuzzywuzzy_ctrl.dummy_malloc + REAL(malloc_usable_size, (void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
                     // size is slightly bigger, just to ensure we capture the next pointer
                 }
                 fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index] =
@@ -354,7 +363,7 @@ void fuzzywuzzy_read_mmap() {
         fuzzywuzzy_ctrl.writable_saved_curr += fuzzywuzzy_ctrl.writable[i].size;
     }
 
-    close(fd);
+    REAL(close, fd);
 }
 
 
