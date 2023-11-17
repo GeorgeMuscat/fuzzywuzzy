@@ -11,6 +11,13 @@
 
 #define CTRL_OFFSET "0xbc"  // if everything stop working, check this
 
+#define save_ra() \
+void *ra = NULL;\
+__asm__(\
+        "mov %[asm_ra], [ebp+4]\n"\
+        : [asm_ra] "=&r" (ra)\
+)
+
 struct mmap_data {
     void *addr;
     size_t len;

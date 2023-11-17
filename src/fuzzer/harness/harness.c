@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <malloc.h>
 
 #include "harness.h"
 #include "socket.h"
@@ -137,7 +138,7 @@ void fuzzywuzzy_log_reset(int exit_code) {
  * Reset program state, equivalent to re-running program. This will automatically re-invoke main
  * Can be called as a regular C function from anywhere
  */
-void fuzzywuzzy_reset(int exit_code) {
+_Noreturn void fuzzywuzzy_reset(int exit_code) {
     fuzzywuzzy_log_reset(exit_code);
 
     for (int i = 0; i < NUM_SIGNALS; i++) {
@@ -196,6 +197,9 @@ void fuzzywuzzy_reset(int exit_code) {
             );
 
     __asm__("jmp fuzzywuzzy_saved\n");
+
+    // this never runs, but silences the no return warning
+    exit(1);
 }
 
 typedef enum parse_state {
