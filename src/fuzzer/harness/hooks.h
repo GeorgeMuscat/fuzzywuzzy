@@ -84,8 +84,8 @@ typedef FILE *FILE_ptr;
     }
 void fuzzywuzzy_preload_hooks(void);
 
-#define REAL(fn, ...) \
-    (*fuzzywuzzy_real_##fn)(__VA_ARGS__)
+#define REAL(fn) \
+    (*fuzzywuzzy_real_##fn)
 
 /*void *(*real_malloc)(size_t size);
 void *malloc(size_t size) {

@@ -181,8 +181,6 @@ void fuzzywuzzy_user_reset(int exit_code) {
     }
 
     fuzzywuzzy_ctrl.mmap_index = 0;
-
-
 }
 
 /**
