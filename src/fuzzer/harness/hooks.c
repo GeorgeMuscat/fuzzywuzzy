@@ -8,7 +8,6 @@
 #include <ucontext.h>
 
 #include "harness.h"
-#include <ucontext.h>
 
 GEN_WRAPPER(int close, int fd)
 
@@ -16,7 +15,7 @@ GEN_WRAPPER(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen)
 GEN_WRAPPER(void free, void_ptr ptr)
 GEN_WRAPPER(char_ptr fgets, char_ptr str, int n, FILE_ptr stream);
 GEN_WRAPPER(char_ptr getenv, const_char_ptr name)
-//GEN_WRAPPER(void_ptr malloc, size_t size)
+GEN_WRAPPER(void_ptr malloc, size_t size)
 GEN_WRAPPER(size_t malloc_usable_size, void_ptr ptr)
 GEN_WRAPPER(void_ptr memset, void_ptr str, int c, size_t n)
 GEN_WRAPPER(int open, const_char_ptr pathname, int flags)
@@ -78,9 +77,9 @@ _Noreturn void exit(int status) {
     LOAD_GUARD(exit);
     setcontext(&fuzzywuzzy_ctrl.context);
 
-
     // this'll never return :)
-    for (;;);
+    for (;;)
+        ;
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
@@ -140,7 +139,7 @@ int *__libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_
 }
 
 int printf(const char *format, ...) {
-    //LOAD_GUARD(vprintf);
+    // LOAD_GUARD(vprintf);
 
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);

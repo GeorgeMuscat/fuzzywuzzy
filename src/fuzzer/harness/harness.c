@@ -49,7 +49,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
-        fuzzywuzzy_restore(0);
+        fuzzywuzzy_restore();
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
         // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
