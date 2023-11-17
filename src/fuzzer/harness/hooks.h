@@ -2,6 +2,13 @@
 
 #include <stdlib.h>
 
+#define LOAD(FN) *(void **)(&real_##FN) = dlsym(RTLD_NEXT, #FN)
+
+#define LOAD_GUARD(FN) \
+    if (!real_##FN) {  \
+        LOAD(FN);      \
+    }
+
 void fuzzywuzzy_preload_hooks(void);
 
 /*void *(*real_malloc)(size_t size);
@@ -50,21 +57,6 @@ int snprintf_replace(char *str, size_t size, const char *format, ...) {
     return res;
 }
 
-*/
-
-/*
-socket
-abort
-
-bind
-listen
-accept
-getenv
-exit
-read
-write
-memset
-strcpy
 */
 
 // int (*real_socket)(int domain, int type, int protocol);
