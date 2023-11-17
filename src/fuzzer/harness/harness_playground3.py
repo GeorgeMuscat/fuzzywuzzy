@@ -37,12 +37,11 @@ class Harness3:
 
         assert self.process.stdin is not None
 
-        self._await_reset()
-        self._send_ack()
         self._await_start()
         start = time.time()
         self._send_ack()
         self.process.stdin.write(input)
+        self.process.stdin.flush()
 
         events = []
 
@@ -103,7 +102,7 @@ class Harness3:
         self.process = Popen(
             self.binary_path.absolute(),
             stdin=PIPE,
-            stdout=DEVNULL,
+            stdout=PIPE,
             stderr=DEVNULL,
             env={"LD_PRELOAD": "./harness.so", "FUZZYWUZZY_SOCKET_PATH": socket_path},
         )

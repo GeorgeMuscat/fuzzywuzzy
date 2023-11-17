@@ -119,8 +119,11 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             );
 
 
+    __asm__("jmp fuzzywuzzy_first_run\n");
+
     __asm__("fuzzywuzzy_saved:\n");
     fuzzywuzzy_user_reset(fuzzywuzzy_ctrl.last_exit_code);
+    __asm__("fuzzywuzzy_first_run:\n");
 
 
 
