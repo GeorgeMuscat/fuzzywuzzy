@@ -96,7 +96,8 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     //region C
     //endregion
 
-    return fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
+    fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
+    fuzzywuzzy_reset();
 }
 
 /**

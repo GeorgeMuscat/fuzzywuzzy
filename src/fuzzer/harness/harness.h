@@ -11,6 +11,13 @@
 
 #define CTRL_OFFSET "0xbc" // if everything stop working, check this
 
+#define save_ra() \
+void *ra = NULL;\
+__asm__(\
+        "mov %[asm_ra], [ebp+4]\n"\
+        : [asm_ra] "=&r" (ra)\
+)
+
 struct mmap_data {
     void *addr;
     size_t len;
@@ -131,7 +138,8 @@ void (*signal(int sig, void (*func)(int)))(int) {
         *(void **) (&real_signal) = dlsym(RTLD_NEXT, __func__);
     }
     fuzzywuzzy_ctrl.signals[sig] = true;
-    printf("registering signal for %d\n", sig);
+
+    save_ra();
 
     return (*real_signal)(sig, func);
 }
