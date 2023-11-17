@@ -92,10 +92,9 @@ class Reporter:
     def print_crash_output(self, duration: float, exit_code: int, events: list[tuple]):
         fn = f"./event-{int(time.time())}.txt"
         msg = f"""[bold red]Target Binary Crash Detected[/bold red]
-            - Binary crashed with {lookup_signal(exit_code)}
-            - Bad input took {duration:.2f} seconds to run
-            - Notable events: {events if len(events) < 10 else f"[bold]See {fn} for a list of events[/bold]"}
-        """  # TODO: actually make events look ok
+    - Binary crashed with signal {lookup_signal(exit_code)}
+    - Bad input took {duration:.2f} seconds to run
+    - Notable events: {events if len(events) < 10 else f"[bold]See {fn} for a list of events[/bold]"}"""  # TODO: actually make events look ok
         if len(events) < 10:
             fp = open(fn, "w+")
             fp.write(str(events))

@@ -31,9 +31,8 @@ def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
     reporter = Reporter(binary)
     result = fuzz(binary, sample_input)
     if result is not None:
-        reporter.print("HOLY SHIT WE DID IT")
+        reporter.print_crash_output(100.3, -11, [("idk", 1000)])
         output_file.write(result)
-        reporter.print("Check your cwd for bad.txt")
     else:
         reporter.print("We couldn't break the binary T_T")
 
