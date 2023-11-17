@@ -1,5 +1,6 @@
 from datetime import datetime
 from math import e
+import time
 from typing import Iterator, TypeVar, BinaryIO
 from pathlib import Path
 from rich.panel import Panel
@@ -89,11 +90,16 @@ class Reporter:
         self.live.refresh()
 
     def print_crash_output(self, duration: float, exit_code: int, events: list[tuple]):
-        msg = f"""[bold]Target Binary Crash Detected[/bold]
+        fn = f"./event-{int(time.time())}.txt"
+        msg = f"""[bold red]Target Binary Crash Detected[/bold red]
             - Binary crashed with {lookup_signal(exit_code)}
             - Bad input took {duration:.2f} seconds to run
-            - Notable events: {events}
-        """  # TODO: actually events look ok
+            - Notable events: {events if len(events) < 10 else f"[bold]See {fn} for a list of events[/bold]"}
+        """  # TODO: actually make events look ok
+        if len(events) < 10:
+            fp = open(fn, "w+")
+            fp.write(str(events))
+            fp.close()
         self.print(msg)
 
     def inc_mutations(self):
