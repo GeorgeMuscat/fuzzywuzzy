@@ -1,17 +1,19 @@
-import os
-from pathlib import Path
+import signal
 import sys
-from typing import BinaryIO, Optional
+from pathlib import Path
+from pprint import pformat
+from typing import BinaryIO, Callable, Optional
 
 import click
 import magic
-import signal
 
 from fuzzer.harness import Harness, PopenHarness
-from fuzzer.utils import round_robin, Reporter
+from fuzzer.harness.base import HarnessResult
+from fuzzer.utils import Reporter, round_robin
+
 from .hunters import MIME_TYPE_TO_HUNTERS
 
-reporter = None
+CoverageGraph = dict[tuple, "CoverageGraph"]
 
 
 @click.command()
@@ -28,29 +30,32 @@ reporter = None
 )
 def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
-    global reporter
     reporter = Reporter(binary)
 
     def signal_handler(sig, frame):
         """
         Need this so that rich doesn't break the terminal cursor
         """
-        reporter.reset_console() if reporter != None else None
+        reporter.reset_console()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    result = fuzz(binary, sample_input)
+    result = fuzz(binary, sample_input, reporter.log_result)
     if result is not None:
-        reporter.print_crash_output(100.3, -11, [("idk", 1000)])
-        output_file.write(result)
+        reporter.print_crash_output(result[1])
+        output_file.write(result[0])
     else:
         reporter.print("We couldn't break the binary T_T")
 
     reporter.reset_console()
 
 
-def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
+def fuzz(
+    binary: Path,
+    sample_input_file: BinaryIO,
+    result_callback: Callable[[HarnessResult], None] = lambda r: None,
+) -> Optional[tuple[bytes, HarnessResult, CoverageGraph]]:
     sample_input = sample_input_file.read()
     mime_type = magic.from_buffer(sample_input, mime=True)
     hunters = MIME_TYPE_TO_HUNTERS.get(mime_type)
@@ -65,12 +70,38 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
         harness = PopenHarness(binary)
     else:
         harness = Harness(binary)
+
+    coverage_graph = {}
+
+    # Initialise the graph with the coverage of the sample input.
+    result = harness.run(sample_input)
+    initial_nodes = merge_coverage_events(coverage_graph, result["events"])
+    print("found initial nodes:", initial_nodes, pformat(result["events"]))
+
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
+        new_nodes = merge_coverage_events(coverage_graph, result["events"])
 
-        reporter.inc_mutations() if reporter != None else None
+        if new_nodes > 0:
+            print("found new nodes:", new_nodes, pformat(result["events"]))
+
+        result_callback(result)
         if result["exit_code"] is not None and result["exit_code"] < 0:
-            return mutation
+            return mutation, result, coverage_graph
+
+    return None
+
+
+def merge_coverage_events(graph: CoverageGraph, events: list[tuple]):
+    """Adds `events` into `graph` and returns the number of newly discovered nodes."""
+    head = graph
+    new_nodes = 0
+    for event in events:
+        if event not in head:
+            head[event] = {}
+            new_nodes += 1
+        head = head[event]
+    return new_nodes
 
 
 def sanity():

@@ -1,13 +1,12 @@
 import os
 import socket
-import tempfile
 import threading
 import time
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen
 from typing import Optional, TypedDict
 
-from .base import BaseHarness
+from .base import BaseHarness, HarnessResult
 
 TIMEOUT = 1
 
@@ -34,7 +33,7 @@ class InProcessHarness(BaseHarness):
         self.debug = debug
         self.start()
 
-    def run(self, input: bytes):
+    def run(self, input: bytes) -> HarnessResult:
         if not self.open:
             self.start()
 
@@ -52,12 +51,13 @@ class InProcessHarness(BaseHarness):
         while True:
             exit_code = self.process.poll()
             if exit_code is not None:
-                self.open = False
+                self.kill()
+
                 if exit_code >= 0:
                     raise HarnessException("fuck the harness crashed...")
 
                 duration = time.time() - start
-                self.kill()
+
                 return {
                     "duration": duration,
                     "exit_code": exit_code,
@@ -88,7 +88,7 @@ class InProcessHarness(BaseHarness):
                 events.append(
                     (
                         "libc_call",
-                        msg["data"]["func_name"],
+                        msg["data"]["func_name"].decode(),  # type: ignore
                         msg["data"]["return_addr"],
                     )
                 )

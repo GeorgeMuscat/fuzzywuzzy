@@ -1,15 +1,16 @@
-from datetime import datetime
-from math import e
+import json
+import pprint
 import time
-import sys
-from typing import Iterator, TypeVar, BinaryIO
 from pathlib import Path
-from rich.panel import Panel
-from rich.live import Live
-from rich.status import Status
-from rich.console import Group, Console
+from typing import Iterator, TypeVar
 
-from rich.progress import Progress, TimeElapsedColumn, TextColumn
+from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress import Progress, TextColumn, TimeElapsedColumn
+from rich.status import Status
+
+from fuzzer.harness.base import HarnessResult
 
 T = TypeVar("T")
 
@@ -67,7 +68,7 @@ class Reporter:
     def __init__(self, binary: Path) -> None:
         self.console = Console()
         self.mutations = 0
-        self.init_time = datetime.now()
+        self.init_time = time.time()
 
         self.mutation_status = Status(self.__get_mutation_str(self.mutations))
         self.time_progress = Progress("Time Elapsed:", TimeElapsedColumn())
@@ -90,19 +91,20 @@ class Reporter:
         self.result_progress.add_task(message)
         self.live.refresh()
 
-    def print_crash_output(self, duration: float, exit_code: int, events: list[tuple]):
-        fn = f"./event-{int(time.time())}.txt"
+    def print_crash_output(self, result: HarnessResult):
+        assert result["exit_code"] is not None
+
+        fn = f"./events-{int(time.time())}.json"
         msg = f"""[bold red]Target Binary Crash Detected[/bold red]
-    - Binary crashed with signal {lookup_signal(exit_code)}
-    - Bad input took {duration:.2f} seconds to run
-    - Notable events: {events if len(events) < 10 else f"[bold]See {fn} for a list of events[/bold]"}"""  # TODO: actually make events look ok
-        if len(events) >= 10:
-            fp = open(fn, "w+")
-            fp.write(str(events))
-            fp.close()
+    - Binary crashed with signal {lookup_signal(result['exit_code'])}
+    - Bad input took {result['duration']:.2f} seconds to run
+    - Notable events: {result['events'] if len(result['events']) < 10 else f"[bold]See {fn} for a list of events[/bold]"}"""  # TODO: actually make events look ok
+        if len(result["events"]) >= 10:
+            with open(fn, "w") as f:
+                f.write(json.dumps(result["events"], indent=4))
         self.print(msg)
 
-    def inc_mutations(self):
+    def log_result(self, result: HarnessResult):
         self.mutations += 1
         self.mutation_status.update(self.__get_mutation_str(self.mutations))
         self.speed_status.update(self.__get_speed())
@@ -118,11 +120,12 @@ class Reporter:
         Returns the speed in mutations/second rounded to 2 decimal places.
         """
         try:
-            return f"Speed: {self.mutations / (datetime.now() - self.init_time).total_seconds():.2f} mutations/sec"
+            return f"Speed: {self.mutations / (time.time() - self.init_time):.2f} mutations/sec"
         except ZeroDivisionError:
             return f"0 mutations/sec"
 
 
 def lookup_signal(exit_code: int):
     """ """
+    return SIGNALS[-1 * exit_code]
     return SIGNALS[-1 * exit_code]
