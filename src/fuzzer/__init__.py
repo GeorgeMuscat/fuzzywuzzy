@@ -62,10 +62,11 @@ def fuzz(
     hunters = MIME_TYPE_TO_HUNTERS.get(mime_type)
 
     if hunters is None:
+        hunters = MIME_TYPE_TO_HUNTERS["text/plain"]
         # TODO: Don't use a CLI-specific error in a library function.
-        raise click.UsageError(
-            "sample_input_file does not contain data of a compatible format"
-        )
+        # raise click.UsageError(
+        #     "sample_input_file does not contain data of a compatible format"
+        # )
 
     if "64-bit" in magic.from_file(binary):
         harness = PopenHarness(binary)
