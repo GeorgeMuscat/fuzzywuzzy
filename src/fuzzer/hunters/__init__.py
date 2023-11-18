@@ -2,7 +2,7 @@ from typing import Callable, Iterator
 
 from .plaintext import segment_hunter, whole_text_hunter
 from .jpeg import marker_hunter, header_hunter, quantization_table_hunter
-from .json import json_key_hunter, json_value_hunter, json_key_remover
+from .json import json_key_hunter, json_value_hunter, json_number_value_hunter, json_array_hunter, json_key_remover
 from .xml import (
     xml_attribute_hunter,
     xml_text_hunter,
@@ -19,6 +19,8 @@ MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
     "application/json": [
         json_key_hunter,
         json_value_hunter,
+        json_number_value_hunter,
+        json_array_hunter,
         json_key_remover,
         whole_text_hunter,
     ],
