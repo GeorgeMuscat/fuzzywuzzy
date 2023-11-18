@@ -44,17 +44,16 @@ class InProcessHarness(BaseHarness):
 
         self._await_start()
         start = time.time()
-        self._send_ack()
         self.process.stdin.write(input)
         self.process.stdin.flush()
         self.process.stdin.close()
+        self._send_ack()
 
         events = []
 
         while True:
             exit_code = self.process.poll()
             if exit_code is not None:
-                self.open = False
                 if exit_code >= 0:
                     raise HarnessException("fuck the harness crashed...")
 
@@ -134,6 +133,7 @@ class InProcessHarness(BaseHarness):
 
     def kill(self):
         self.process.kill()
+        self.server.close()
         self.connection.close()
         self.open = False
 
@@ -248,8 +248,6 @@ class UnknownMessageTypeException(HarnessException):
 
 
 def main():
-    harness = InProcessHarness(
-        Path("tests/binaries/fuzz_targets/plaintext2"), debug=False
-    )
+    harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
     for i in range(20):
-        print(harness.run(b"A" * 32768 + b"\n")["exit_code"])
+        harness.run(b"A" * 32768)
