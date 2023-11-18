@@ -75,5 +75,5 @@ void fuzzywuzzy_log_start();
 void fuzzywuzzy_log_reset(int exit_code);
 void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr);
 
-void fuzzywuzzy_restore();
-void fuzzywuzzy_user_reset(int exit_code);
+
+void fuzzywuzzy_reset(int reset_code);

@@ -248,18 +248,6 @@ class UnknownMessageTypeException(HarnessException):
 
 
 def main():
-    harness = InProcessHarness(
-        Path("tests/binaries/fuzz_targets/plaintext2"), debug=True
-    )
-    print("result 1:", harness.run(b"trivial\n2\n"))  # exit code 0
-    print("result 2:", harness.run(b"trivial\n-524288\n"))  # crash, SIGSEGV
-    print("result 3:", harness.run(b"trivial\n"))  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
-    # for i in range(1000):
-    #     harness.run(b"trivial\n2\n")
-    # harness.set_debug(True)
-    # print("result 5:", harness.run(b"trivial\n-524288\n"))  # exit code 0
+    harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
+    for i in range(20):
+        harness.run(b"A" * 32768)
