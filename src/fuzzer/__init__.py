@@ -7,7 +7,7 @@ import click
 import magic
 import signal
 
-from fuzzer.harness import Harness
+from fuzzer.harness import Harness, PopenHarness
 from fuzzer.utils import round_robin, Reporter
 from .hunters import MIME_TYPE_TO_HUNTERS
 
@@ -60,6 +60,9 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
         raise click.UsageError(
             "sample_input_file does not contain data of a compatible format"
         )
+
+    if "64-bit" in magic.from_file(binary):
+            Harness = PopenHarness
 
     harness = Harness(binary)
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
