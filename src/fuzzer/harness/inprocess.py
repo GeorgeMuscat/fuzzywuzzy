@@ -44,10 +44,10 @@ class InProcessHarness(BaseHarness):
 
         self._await_start()
         start = time.time()
+        self._send_ack()
         self.process.stdin.write(input)
         self.process.stdin.flush()
         self.process.stdin.close()
-        self._send_ack()
 
         events = []
 
@@ -59,6 +59,7 @@ class InProcessHarness(BaseHarness):
                     raise HarnessException("fuck the harness crashed...")
 
                 duration = time.time() - start
+                self.kill()
                 return {
                     "duration": duration,
                     "exit_code": exit_code,
@@ -247,11 +248,17 @@ class UnknownMessageTypeException(HarnessException):
 
 
 def main():
-    harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
-    print("result 1:", harness.run(b"trivial\n2\n"))
-    print("result 2:", harness.run(b"trivial\n-524288\n"))
-    print("result 3:", harness.run(b"trivial\n"))
-    for i in range(1000):
-        harness.run(b"trivial\n2\n")
-    harness.set_debug(True)
-    print("result 4:", harness.run(b"trivial\n-524288\n"))
+    harness = InProcessHarness(
+        Path("tests/binaries/fuzz_targets/plaintext2"), debug=False
+    )
+    print("result 1:", harness.run(b"trivial\n2\n")["exit_code"])  # exit code 0
+    print("result 1:", harness.run(b"trivial\n2\n")["exit_code"])  # exit code 0
+    print("result 3:", harness.run(b"trivial\n3"))
+    print("result 2:", harness.run(b"trivial\n-524288\n")["exit_code"])  # crash, SIGSEGV
+    print("result 3:", harness.run(b"trivial\n2\n"))
+    print("result 3:", harness.run(b"trivial\n3"))  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0

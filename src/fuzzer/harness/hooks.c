@@ -10,7 +10,6 @@
 #include "harness.h"
 
 GEN_WRAPPER(int close, int fd)
-
 GEN_WRAPPER(int connect, int sockfd, const_sockaddr_ptr addr, socklen_t addrlen)
 GEN_WRAPPER(void free, void_ptr ptr)
 GEN_WRAPPER(char_ptr fgets, char_ptr str, int n, FILE_ptr stream);
@@ -22,7 +21,6 @@ GEN_WRAPPER(int open, const_char_ptr pathname, int flags)
 GEN_WRAPPER(int puts, const_char_ptr s)
 GEN_WRAPPER(ssize_t read, int fd, void_ptr buf, size_t count)
 GEN_WRAPPER(int socket, int domain, int type, int protocol)
-
 GEN_WRAPPER(char_ptr strchr, const_char_ptr str, int c)
 GEN_WRAPPER(char_ptr strcpy, char_ptr dest, const_char_ptr src)
 GEN_WRAPPER(size_t strlen, const_char_ptr s)
@@ -35,7 +33,6 @@ GEN_DEF(void exit, int status)
 GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset)
 GEN_DEF(int munmap, void_ptr addr, size_t length)
 GEN_DEF(int vprintf, const_char_ptr format, va_list ap)
-GEN_DEF(void_ptr malloc, size_t size)
 
 void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
 int *(*fuzzywuzzy_real___libc_start_main)(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void),
@@ -44,38 +41,40 @@ int *(*fuzzywuzzy_real___libc_start_main)(int (*main)(int, char **, char **), in
 extern struct control_data fuzzywuzzy_ctrl;
 
 void fuzzywuzzy_preload_hooks(void) {
+    LOAD(close);
+    LOAD(connect);
     LOAD(free);
+    LOAD(fgets);
+    LOAD(getenv);
+    LOAD(malloc);
+    LOAD(malloc_usable_size);
+    LOAD(memset);
+    LOAD(open);
+    LOAD(puts);
+    LOAD(read);
+    LOAD(socket);
+    LOAD(strchr);
+    LOAD(strcpy);
+    LOAD(strlen);
+    LOAD(strncmp);
+    LOAD(strtoul);
+    LOAD(write);
+
+
+    LOAD(abort);
     LOAD(exit);
-    LOAD(signal);
     LOAD(mmap);
     LOAD(munmap);
-    LOAD(__libc_start_main);
-    LOAD(puts);
-    LOAD(getenv);
-    LOAD(strcpy);
-    LOAD(socket);
-    LOAD(abort);
-    LOAD(strlen);
-    LOAD(connect);
-    LOAD(memset);
-    LOAD(read);
-    LOAD(write);
-    LOAD(close);
-    LOAD(open);
-    LOAD(strtoul);
-    LOAD(malloc_usable_size);
-    LOAD(strncmp);
-    LOAD(malloc);
+    LOAD(vprintf);
+
+    LOAD(signal);
 }
 
 _Noreturn void exit(int status) {
-    LOAD_GUARD(exit)
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
-    fuzzywuzzy_ctrl.last_exit_code = status;
 
-    LOAD_GUARD(exit);
-    setcontext(&fuzzywuzzy_ctrl.context);
+    fuzzywuzzy_reset(status);
 
     // this'll never return :)
     for (;;)
@@ -83,7 +82,6 @@ _Noreturn void exit(int status) {
 }
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
-    LOAD_GUARD(mmap);
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
 
@@ -95,7 +93,6 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 }
 
 int munmap(void *addr, size_t length) {
-    LOAD_GUARD(munmap)
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
 
@@ -115,7 +112,6 @@ int munmap(void *addr, size_t length) {
 }
 
 void (*signal(int sig, void (*func)(int)))(int) {
-    LOAD_GUARD(signal);
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
 
@@ -126,21 +122,20 @@ void (*signal(int sig, void (*func)(int)))(int) {
 
 int *__libc_start_main(int (*main)(int, char **, char **), int argc, char **ubp_av, void (*init)(void), void (*fini)(void),
                        void (*rtld_fini)(void), void(*stack_end)) {
-    LOAD_GUARD(__libc_start_main);
-
     if (fuzzywuzzy_ctrl.original_main_fn != NULL) {
+        LOAD(puts);
+        LOAD(abort);
         REAL(puts)("WARNING: LIBC START MAIN CALLED TWICE, THIS WILL BREAK THE HARNESS");
         REAL(abort)();
     }
 
     fuzzywuzzy_ctrl.original_main_fn = main;
 
+    LOAD(__libc_start_main);
     return REAL(__libc_start_main)(fuzzywuzzy_main, argc, ubp_av, init, fini, rtld_fini, stack_end);
 }
 
 int printf(const char *format, ...) {
-    // LOAD_GUARD(vprintf);
-
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
 
