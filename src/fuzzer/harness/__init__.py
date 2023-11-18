@@ -1,4 +1,5 @@
+from .base import BaseHarness
 from .inprocess import InProcessHarness
 from .popen import PopenHarness
 
-Harness = InProcessHarness
+Harness: type[BaseHarness] = InProcessHarness

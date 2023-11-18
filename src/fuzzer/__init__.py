@@ -49,7 +49,7 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
 
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
-        if result["exit_code"] < 0:
+        if result["exit_code"] is not None and result["exit_code"] < 0:
             return mutation
 
 

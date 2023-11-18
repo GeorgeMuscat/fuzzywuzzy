@@ -1,19 +1,22 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 
 class HarnessResult(TypedDict):
     duration: float
-    exit_code: int
+    exit_code: Optional[int]
     events: list[tuple]
 
 
-class Harness(ABC):
+class BaseHarness(ABC):
     @abstractmethod
-    def __init__(self, binary_path: Path):
+    def __init__(self, binary_path: Path, debug: bool = False):
         pass
 
     @abstractmethod
     def run(self, input: bytes) -> HarnessResult:
+        pass
+
+    def set_debug(self, debug: bool):
         pass
