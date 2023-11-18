@@ -8,4 +8,5 @@ def delete_keywords(sample_input: bytes, keywords: list[bytes]) -> Iterator[byte
 
 def repeat_keywords(sample_input: bytes, keywords: list[bytes]) -> Iterator[bytes]:
     for keyword in keywords:
-        yield sample_input[:].replace(keyword, keyword * 2)
+        for n in range(32):
+            yield sample_input[:].replace(keyword, keyword * n)
