@@ -66,6 +66,8 @@ struct control_data {
 
     ucontext_t context;
     int last_exit_code;
+    int stdin_cpy;
+    char stdin_buf[65535];
 };
 
 int fuzzywuzzy_main(int argc, char **argv, char **environ);

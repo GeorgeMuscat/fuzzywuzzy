@@ -251,14 +251,5 @@ def main():
     harness = InProcessHarness(
         Path("tests/binaries/fuzz_targets/plaintext2"), debug=False
     )
-    print("result 1:", harness.run(b"trivial\n2\n")["exit_code"])  # exit code 0
-    print("result 1:", harness.run(b"trivial\n2\n")["exit_code"])  # exit code 0
-    print("result 3:", harness.run(b"trivial\n3"))
-    print("result 2:", harness.run(b"trivial\n-524288\n")["exit_code"])  # crash, SIGSEGV
-    print("result 3:", harness.run(b"trivial\n2\n"))
-    print("result 3:", harness.run(b"trivial\n3"))  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
-    print("result 4:", harness.run(b"trivial\n-524288\n")["exit_code"])  # exit code 0
+    for i in range(20):
+        print(harness.run(b"A" * 32768 + b"\n")["exit_code"])

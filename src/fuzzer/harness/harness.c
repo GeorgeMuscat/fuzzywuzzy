@@ -49,6 +49,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
+        setvbuf(stdin, fuzzywuzzy_ctrl.stdin_buf, _IOLBF, 65535);
         fuzzywuzzy_restore();
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
@@ -182,7 +183,9 @@ void fuzzywuzzy_pre_reset(int exit_code) {
  * Performs operations to reset program state other than memory restoration.
  */
 void fuzzywuzzy_post_reset(int exit_code) {
+    //close(STDIN_FILENO);
     // Flush stdin stream.
+    //fseek(stdin,0,SEEK_END);
     ungetc(0, stdin);
     __fpurge(stdin);
 

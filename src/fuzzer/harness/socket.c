@@ -6,6 +6,8 @@
 
 #include "hooks.h"
 
+#undef DISABLE_SOCKET
+
 extern GEN_DEF(char_ptr getenv, const_char_ptr name) extern GEN_DEF(char_ptr strcpy, char_ptr dest, const_char_ptr src);
 extern GEN_DEF(int socket, int domain, int type, int protocol);
 extern GEN_DEF(void abort);
@@ -18,6 +20,9 @@ extern GEN_DEF(int close, int fd);
 extern GEN_DEF(int puts, const_char_ptr s);
 
 void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
+#ifdef DISABLE_SOCKET
+    return;
+#endif
     char *path = REAL(getenv)(SOCKET_PATH_ENVVAR);
     if (path == NULL) {
         REAL(abort)();
@@ -48,6 +53,9 @@ void fuzzywuzzy_init_socket(struct fuzzer_socket_t *sock) {
  * @return status (negative for error, 0 on success)
  */
 int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *msg) {
+#ifdef DISABLE_SOCKET
+    return 0;
+#endif
     REAL(memset)(msg, 0, sizeof(struct fuzzer_msg_t));
 
     REAL(read)(sock->conn_fd, &msg->msg_type, 1);
@@ -79,6 +87,9 @@ int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *m
  * @return status (negative for error, 0 on success)
  */
 int fuzzywuzzy_write_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *msg) {
+#ifdef DISABLE_SOCKET
+    return 0;
+#endif
     int data_size = 0;
 
     switch (msg->msg_type) {
@@ -116,6 +127,9 @@ int fuzzywuzzy_write_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *
  * Waits for and reads a message from the current socket connection and aborts if it is not a MSG_ACK.
  */
 void fuzzywuzzy_expect_ack(struct fuzzer_socket_t *sock) {
+#ifdef DISABLE_SOCKET
+    return;
+#endif
     struct fuzzer_msg_t msg = {0};
     fuzzywuzzy_read_message(sock, &msg);
 
@@ -125,5 +139,8 @@ void fuzzywuzzy_expect_ack(struct fuzzer_socket_t *sock) {
 }
 
 void fuzzywuzzy_close_socket(struct fuzzer_socket_t *sock) {
+#ifdef DISABLE_SOCKET
+    return;
+#endif
     REAL(close)(sock->conn_fd);
 }
