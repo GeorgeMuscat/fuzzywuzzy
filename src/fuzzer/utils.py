@@ -83,7 +83,7 @@ class Reporter:
                 self.result_progress,
             )
         )
-        self.live = Live(self.panel, refresh_per_second=30, console=self.console)
+        self.live = Live(self.panel, refresh_per_second=5, console=self.console)
         self.live.start()
 
     def print(self, message: str):
