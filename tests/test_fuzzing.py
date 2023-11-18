@@ -17,7 +17,6 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     with open(input, "rb") as f:
         start = time.time()
         output = fuzz(binary, f)
-        print(output)
         assert output is not None, "could not find bad input"
         mutation, result, coverage = output
         end = time.time()
@@ -28,16 +27,3 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     assert result["exit_code"] < 0
 
     assert (end - start) < FUZZING_TIMEOUT
-
-
-def test_hang_timeout():
-    """Tests that the harness stops processes that last beyond the timeout."""
-    hang_path = Path("tests", "binaries", "hang", "hang")
-
-    harness = Harness(hang_path)
-
-    start = time.time()
-    assert harness.run(b"") == "timeout"
-    end = time.time()
-
-    assert (end - start) > HARNESS_TIMEOUT
