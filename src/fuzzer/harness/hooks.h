@@ -16,7 +16,7 @@ typedef char* char_ptr;
 typedef char** char_ptr_ptr;
 typedef const char* const_char_ptr;
 typedef const struct sockaddr* const_sockaddr_ptr;
-typedef const unsigned long unsigned_long;
+typedef unsigned long unsigned_long;
 typedef FILE* FILE_ptr;
 
 #define LPAREN (

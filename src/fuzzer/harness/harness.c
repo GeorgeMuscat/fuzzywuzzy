@@ -18,7 +18,9 @@ const char *heap_str = "[heap]";
 const char *harness_str = "harness.so";
 
 //do not use realloc or free ANYWHERE
-
+__attribute__ ((noinline)) void fuzzywuzzy_restore();
+void fuzzywuzzy_pre_reset(int exit_code);
+void fuzzywuzzy_post_reset(int exit_code);
 
 extern GEN_DEF(void_ptr mmap, void_ptr addr, size_t length, int prot, int flags, int fd, off_t offset)
 extern GEN_DEF(int open, const_char_ptr pathname, int flags)
@@ -47,6 +49,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
+        setvbuf(stdin, fuzzywuzzy_ctrl.stdin_buf, _IOLBF, 65535);
         fuzzywuzzy_restore();
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
@@ -114,14 +117,13 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
     __asm__("jmp fuzzywuzzy_first_run\n");
 
     __asm__("fuzzywuzzy_reset_point:\n");
-    fuzzywuzzy_user_reset(fuzzywuzzy_ctrl.last_exit_code);
+    fuzzywuzzy_post_reset(fuzzywuzzy_ctrl.last_exit_code);
     __asm__("fuzzywuzzy_first_run:\n");
 
     // this code will be run on every execution of the program
     fuzzywuzzy_log_start();
     int exit_code = fuzzywuzzy_ctrl.original_main_fn(argc, argv, environ);
-    fuzzywuzzy_ctrl.last_exit_code = exit_code;
-    setcontext(&fuzzywuzzy_ctrl.context);
+    fuzzywuzzy_reset(exit_code);
 }
 
 /**
@@ -152,16 +154,13 @@ void fuzzywuzzy_log_reset(int exit_code) {
     fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
 
-/**
- * Performs operations to reset program state other than memory restoration.
- */
-void fuzzywuzzy_user_reset(int exit_code) {
-    // Flush stdin stream.
-    __fpurge(stdin);
+void fuzzywuzzy_reset(int exit_code) {
+    fuzzywuzzy_pre_reset(exit_code);
+    setcontext(&fuzzywuzzy_ctrl.context);
+}
 
-    // Logs reset event to socket connection.
-    fuzzywuzzy_log_reset(exit_code);
-
+void fuzzywuzzy_pre_reset(int exit_code) {
+    fuzzywuzzy_ctrl.last_exit_code = exit_code;
     // Resets signal handlers.
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
@@ -178,6 +177,20 @@ void fuzzywuzzy_user_reset(int exit_code) {
     }
 
     fuzzywuzzy_ctrl.mmap_index = 0;
+}
+
+/**
+ * Performs operations to reset program state other than memory restoration.
+ */
+void fuzzywuzzy_post_reset(int exit_code) {
+    //close(STDIN_FILENO);
+    // Flush stdin stream.
+    //fseek(stdin,0,SEEK_END);
+    ungetc(0, stdin);
+    __fpurge(stdin);
+
+    // Logs reset event to socket connection.
+    fuzzywuzzy_log_reset(exit_code);
 }
 
 /**

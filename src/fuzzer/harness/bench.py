@@ -1,12 +1,12 @@
 import time
 from pathlib import Path
 
-from .base import Harness
+from .base import BaseHarness
 from .inprocess import InProcessHarness
 from .popen import PopenHarness
 
 
-def bench(harness: type[Harness]):
+def bench(harness: type[BaseHarness]):
     h = harness(Path("tests/binaries/fuzz_targets/plaintext2"))
     start = time.time()
     for i in range(1000):
