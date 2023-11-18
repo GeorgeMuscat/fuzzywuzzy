@@ -62,9 +62,9 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
         )
 
     if "64-bit" in magic.from_file(binary):
-            Harness = PopenHarness
-
-    harness = Harness(binary)
+        harness = PopenHarness(binary)
+    else:
+        harness = Harness(binary)
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
 
