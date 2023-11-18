@@ -1,7 +1,6 @@
 from .base import BaseHarness
 from .inprocess import InProcessHarness
 from .popen import PopenHarness
-from .inprocess import TIMEOUT
 
-TIMEOUT = TIMEOUT
+# Default harness.
 Harness: type[BaseHarness] = InProcessHarness

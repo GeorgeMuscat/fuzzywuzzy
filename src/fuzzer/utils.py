@@ -50,18 +50,25 @@ SIGNALS = {
 }
 
 
-def round_robin(iterables: list[Iterator[T]]) -> Iterator[T]:
-    # Create an infinite loop to keep iterating in a round-robin fashion
+def round_robin(iterators: list[Iterator[T]]) -> Iterator[T]:
+    """Get the next item from each iterator in a round robin."""
+    l = len(iterators)
+    idx = 0
     while True:
-        for it in iterables:
-            try:
-                yield next(it)
-            except (StopIteration, RuntimeError):
-                # If an iterator is exhausted, remove it from the list
-                iterables = [i for i in iterables if i is not it]
-                if not iterables:
-                    # All iterators are exhausted, exit the loop
-                    return
+        it = iterators[idx]
+
+        try:
+            yield next(it)
+            idx += 1
+        except (StopIteration, RuntimeError):
+            # TODO: Fix segment_hunter properly so we aren't using RuntimeError as a bandaid.
+            iterators.pop(idx)
+            l -= 1
+            if l == 0:
+                return
+
+        if idx >= l:
+            idx = 0
 
 
 class Reporter:
@@ -126,6 +133,5 @@ class Reporter:
 
 
 def lookup_signal(exit_code: int):
-    """ """
-    return SIGNALS[-1 * exit_code]
+    """Looks up the name of a signal based on an exit code from popen (should be negative)."""
     return SIGNALS[-1 * exit_code]

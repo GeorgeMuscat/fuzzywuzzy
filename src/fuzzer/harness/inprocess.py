@@ -8,8 +8,6 @@ from typing import Optional, TypedDict
 
 from .base import BaseHarness, HarnessResult
 
-TIMEOUT = 1
-
 MSG_ACK = 0x01
 MSG_TARGET_START = 0x02
 MSG_TARGET_RESET = 0x03
@@ -22,6 +20,9 @@ class FuzzerMessage(TypedDict):
 
 
 class InProcessHarness(BaseHarness):
+    TIMEOUT = 1
+    SOCKET_TIMEOUT = 0.1
+
     process: Popen
     connection: socket.socket
     open: bool
@@ -49,6 +50,11 @@ class InProcessHarness(BaseHarness):
         events = []
 
         while True:
+            if time.time() - start > self.TIMEOUT:
+                duration = time.time() - start
+                self.kill()
+                return {"duration": duration, "exit_code": None, "events": events}
+
             exit_code = self.process.poll()
             if exit_code is not None:
                 self.kill()
@@ -123,7 +129,7 @@ class InProcessHarness(BaseHarness):
         )
 
         self.connection, _ = self.server.accept()
-        self.connection.settimeout(0.2)
+        self.connection.settimeout(self.SOCKET_TIMEOUT)
 
         self.open = True
 

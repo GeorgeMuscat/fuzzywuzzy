@@ -10,8 +10,9 @@ import magic
 from fuzzer.harness import Harness, PopenHarness
 from fuzzer.harness.base import HarnessResult
 from fuzzer.utils import Reporter, round_robin
+from fuzzer.wrr import WeightedRoundRobinFlatteningIterator, WeightedRoundRobinIterator
 
-from .hunters import MIME_TYPE_TO_HUNTERS
+from .hunters import MIME_TYPE_TO_HUNTERS, Hunter
 
 CoverageGraph = dict[tuple, "CoverageGraph"]
 
@@ -51,6 +52,10 @@ def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
     reporter.reset_console()
 
 
+def mutation_iterator(hunters: list[Hunter], sample_input: bytes):
+    return round_robin([hunter(sample_input) for hunter in hunters])
+
+
 def fuzz(
     binary: Path,
     sample_input_file: BinaryIO,
@@ -76,14 +81,19 @@ def fuzz(
     # Initialise the graph with the coverage of the sample input.
     result = harness.run(sample_input)
     initial_nodes = merge_coverage_events(coverage_graph, result["events"])
-    print("found initial nodes:", initial_nodes, pformat(result["events"]))
 
-    for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
+    wrr_iter = WeightedRoundRobinFlatteningIterator(
+        [(initial_nodes, mutation_iterator(hunters, sample_input))]
+    )
+
+    for mutation in wrr_iter:
         result = harness.run(mutation)
         new_nodes = merge_coverage_events(coverage_graph, result["events"])
 
         if new_nodes > 0:
-            print("found new nodes:", new_nodes, pformat(result["events"]))
+            # If we found new branches (calls to libc), then mutate this input further.
+            # More nodes uncovered = more code and more opportunities for bugs, so give it more weight.
+            wrr_iter.append_next(new_nodes, mutation_iterator(hunters, mutation))
 
         result_callback(result)
         if result["exit_code"] is not None and result["exit_code"] < 0:

@@ -10,6 +10,8 @@ class HarnessResult(TypedDict):
 
 
 class BaseHarness(ABC):
+    TIMEOUT = 1
+
     @abstractmethod
     def __init__(self, binary_path: Path, debug: bool = False):
         pass
