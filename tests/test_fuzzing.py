@@ -17,14 +17,13 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     with open(input, "rb") as f:
         start = time.time()
         output = fuzz(binary, f)
+        print(output)
         assert output is not None, "could not find bad input"
         mutation, result, coverage = output
         end = time.time()
     assert result is not None
     assert mutation is not None
 
-    harness = Harness(binary)
-    return_code = harness.run(mutation)
     assert type(result["exit_code"]) is int
     assert result["exit_code"] < 0
 
