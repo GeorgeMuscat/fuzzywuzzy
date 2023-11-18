@@ -66,12 +66,8 @@ int fuzzywuzzy_read_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *m
         case MSG_TARGET_START:
         case MSG_TARGET_RESET:
         case MSG_LIBC_CALL:
-        case MSG_INPUT_REQUIRED:
             // Unexpected message type.
             return -1;
-        case MSG_INPUT_RESPONSE:
-            REAL(read)(sock->conn_fd, &msg->data.input_response.can_satisfy, 1);
-            break;
         default:
             // Unknown message type.
             return -2;
@@ -102,12 +98,8 @@ int fuzzywuzzy_write_message(struct fuzzer_socket_t *sock, struct fuzzer_msg_t *
         case MSG_LIBC_CALL:
             data_size = sizeof(struct fuzzer_msg_libc_call_t);
             break;
-        case MSG_INPUT_REQUIRED:
-            data_size = sizeof(struct fuzzer_msg_input_required_t);
-            break;
         // Fuzzer -> Harness only.
         case MSG_ACK:
-        case MSG_INPUT_RESPONSE:
             // Unexpected message type.
             return -1;
         default:

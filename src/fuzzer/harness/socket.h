@@ -11,8 +11,6 @@
 #define MSG_TARGET_START 0x02
 #define MSG_TARGET_RESET 0x03
 #define MSG_LIBC_CALL 0x04
-#define MSG_INPUT_REQUIRED 0x05
-#define MSG_INPUT_RESPONSE 0x06
 
 struct fuzzer_socket_t {
     int conn_fd;
@@ -40,23 +38,6 @@ struct fuzzer_msg_t {
             // Used for pseudo-coverage.
             void *return_addr;
         } libc_call;
-        // 0x05 - requests a check from the fuzzer whether the current input will satisfy the current input request (e.g. fgets call)
-        struct fuzzer_msg_input_required_t {
-            /*
-            0x1 - has length
-            0x2 - terminates on \0
-            0x4 - terminates on \n
-            0x8 - adds \0 to end of input (reads `len-1` bytes)
-            */
-            uint8_t flags;
-            // Maximum length of input, if applicable.
-            size_t len;
-        } input_required;
-        // 0x06 - reply to `input_required`
-        struct fuzzer_msg_input_response_t {
-            // Is the fuzzer providing enough input to satisfy the current call?
-            bool can_satisfy;
-        } input_response;
     } data;
 };
 
