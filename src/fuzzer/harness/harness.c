@@ -14,8 +14,6 @@
 #include "socket.h"
 #include "hooks.h"
 
-#define STDIN 1
-
 const char *heap_str = "[heap]";
 const char *harness_str = "harness.so";
 
@@ -56,7 +54,6 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         fuzzywuzzy_ctrl.dummy_malloc = REAL(malloc)(0x8); //lolxd
         fuzzywuzzy_read_mmap();
     }
-
 
     //eax is about to be nuked, who cares what we do to it
     //save reg
@@ -159,11 +156,11 @@ void fuzzywuzzy_log_reset(int exit_code) {
  * Performs operations to reset program state other than memory restoration.
  */
 void fuzzywuzzy_user_reset(int exit_code) {
-    // Logs reset event to socket connection.
-    fuzzywuzzy_log_reset(exit_code);
-
     // Flush stdin stream.
     __fpurge(stdin);
+
+    // Logs reset event to socket connection.
+    fuzzywuzzy_log_reset(exit_code);
 
     // Resets signal handlers.
     for (int i = 0; i < NUM_SIGNALS; i++) {

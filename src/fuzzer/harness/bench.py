@@ -16,5 +16,5 @@ def bench(harness: type[Harness]):
 
 
 def main():
-    print("1000 runs, popen-based harness:", bench(PopenHarness))
     print("1000 runs, in-process harness:", bench(InProcessHarness))
+    print("1000 runs, popen-based harness:", bench(PopenHarness))
