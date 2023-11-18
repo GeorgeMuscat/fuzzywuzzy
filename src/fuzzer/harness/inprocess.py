@@ -27,10 +27,12 @@ class InProcessHarness(Harness):
     process: Popen
     connection: socket.socket
     open: bool
+    debug: bool
 
-    def __init__(self, binary_path: Path):
+    def __init__(self, binary_path: Path, debug: bool = False):
         self.binary_path = binary_path
         self.open = False
+        self.debug = debug
         self.start()
 
     def run(self, input: bytes):
@@ -41,9 +43,10 @@ class InProcessHarness(Harness):
 
         self._await_start()
         start = time.time()
-        self._send_ack()
         self.process.stdin.write(input)
         self.process.stdin.flush()
+        self.process.stdin.close()
+        self._send_ack()
 
         events = []
 
@@ -71,6 +74,8 @@ class InProcessHarness(Harness):
 
             if msg["msg_type"] == MSG_TARGET_RESET:
                 duration = time.time() - start
+
+                self.process.stdin = open(f"/proc/{self.process.pid}/fd/0", "wb")
                 self._send_ack()
 
                 exit_code = msg["data"]["exit_code"]
@@ -112,8 +117,8 @@ class InProcessHarness(Harness):
         self.process = Popen(
             self.binary_path.absolute(),
             stdin=PIPE,
-            stdout=DEVNULL,
-            stderr=DEVNULL,
+            stdout=None if self.debug else DEVNULL,
+            stderr=None if self.debug else DEVNULL,
             env={
                 "LD_PRELOAD": "./src/fuzzer/harness/harness.so",
                 "FUZZYWUZZY_SOCKET_PATH": socket_path,
@@ -190,6 +195,7 @@ class InProcessHarness(Harness):
                 f"received unexpected message type {msg_type}"
             )
 
+        # print("received:", {"msg_type": msg_type, "data": data})
         return {"msg_type": msg_type, "data": data}
 
     def _write_message(self, msg_type: int, data: dict[str, int] = {}):
@@ -204,6 +210,7 @@ class InProcessHarness(Harness):
             )
         elif msg_type in [MSG_ACK, MSG_INPUT_RESPONSE]:
             self._write_uint8_t(msg_type)
+            # print("sent:", {"msg_type": msg_type, "data": data})
             if msg_type == MSG_ACK:
                 pass
             elif msg_type == MSG_INPUT_RESPONSE:
@@ -215,7 +222,10 @@ class InProcessHarness(Harness):
 
     def _await_start(self):
         msg = self._read_message()
-        assert msg is not None and msg["msg_type"] == MSG_TARGET_START
+        assert msg is not None
+        assert (
+            msg["msg_type"] == MSG_TARGET_START
+        ), f"received msg type {hex(msg['msg_type'])}, was expecting {hex(MSG_TARGET_START)}"
 
     def _send_ack(self):
         self._write_message(MSG_ACK)
@@ -237,3 +247,4 @@ def main():
     harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
     print("result 1:", harness.run(b"trivial\n2\n"))
     print("result 2:", harness.run(b"trivial\n-524288\n"))
+    print("result 3:", harness.run(b"trivial\n"))
