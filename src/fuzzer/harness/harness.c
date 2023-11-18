@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@
 #include "harness.h"
 #include "socket.h"
 #include "hooks.h"
+
 
 const char *heap_str = "[heap]";
 const char *harness_str = "harness.so";
@@ -49,7 +51,8 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         // you are also free to use malloc here, but atm everything that you malloc will be reset, that can be fixed if necessary
         //region C
         fuzzywuzzy_preload_hooks();
-        setvbuf(stdin, fuzzywuzzy_ctrl.stdin_buf, _IOLBF, 65535);
+        setvbuf(stdin, fuzzywuzzy_ctrl.stdin_buf, _IOFBF, STDIN_BUF_SIZE);
+        fcntl(STDIN_FILENO, F_SETPIPE_SZ, STDIN_BUF_SIZE);
         fuzzywuzzy_restore();
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
@@ -160,6 +163,7 @@ void fuzzywuzzy_reset(int exit_code) {
 
 void fuzzywuzzy_pre_reset(int exit_code) {
     fuzzywuzzy_ctrl.last_exit_code = exit_code;
+
     // Resets signal handlers.
     for (int i = 0; i < NUM_SIGNALS; i++) {
         if (fuzzywuzzy_ctrl.signals[i]) {
@@ -187,6 +191,7 @@ void fuzzywuzzy_post_reset(int exit_code) {
     //fseek(stdin,0,SEEK_END);
     ungetc(0, stdin);
     __fpurge(stdin);
+    //setvbuf(stdin, fuzzywuzzy_ctrl.stdin_buf, _IOLBF, 65535);
 
     // Logs reset event to socket connection.
     fuzzywuzzy_log_reset(exit_code);

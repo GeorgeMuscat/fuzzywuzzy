@@ -21,7 +21,11 @@ class PopenHarness(BaseHarness):
         timed_out = False
 
         try:
-            process.communicate(input, timeout=TIMEOUT)
+            #process.communicate(input, timeout=TIMEOUT)
+            process.stdin.write(input)
+            process.stdin.flush()
+            process.stdin.close()
+            process.wait()
         except TimeoutExpired:
             process.terminate()
             timed_out = True

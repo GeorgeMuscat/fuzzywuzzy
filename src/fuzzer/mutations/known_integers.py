@@ -15,7 +15,6 @@ KNOWN_INTS: list[int] = list(
         *(2**i + 1 for i in range(1, 32)),  # 2^i + 1
         0xFF,
  #       -2147280903
-
         -2047000000
     }
 )

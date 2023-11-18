@@ -4,6 +4,8 @@
 
 #include "socket.h"
 
+#define STDIN_BUF_SIZE 1048576
+
 #define BUF_SIZE 8192
 #define NUM_MMAPS 32
 #define NUM_SIGNALS 32
@@ -66,8 +68,7 @@ struct control_data {
 
     ucontext_t context;
     int last_exit_code;
-    int stdin_cpy;
-    char stdin_buf[65535];
+    char stdin_buf[STDIN_BUF_SIZE];
 };
 
 int fuzzywuzzy_main(int argc, char **argv, char **environ);

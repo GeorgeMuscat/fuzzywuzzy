@@ -32,6 +32,7 @@ def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
     """Fuzzes BINARY, using SAMPLE_INPUT as a starting point."""
     reporter = Reporter(binary)
 
+
     def signal_handler(sig, frame):
         """
         Need this so that rich doesn't break the terminal cursor
@@ -71,19 +72,21 @@ def fuzz(
     else:
         harness = Harness(binary)
 
+
     coverage_graph = {}
 
     # Initialise the graph with the coverage of the sample input.
     result = harness.run(sample_input)
     initial_nodes = merge_coverage_events(coverage_graph, result["events"])
-    print("found initial nodes:", initial_nodes, pformat(result["events"]))
+    #print("found initial nodes:", initial_nodes, pformat(result["events"]))
 
     for mutation in round_robin([hunter(sample_input) for hunter in hunters]):
         result = harness.run(mutation)
         new_nodes = merge_coverage_events(coverage_graph, result["events"])
 
         if new_nodes > 0:
-            print("found new nodes:", new_nodes, pformat(result["events"]))
+            #print("found new nodes:", new_nodes, pformat(result["events"]))
+            pass
 
         result_callback(result)
         if result["exit_code"] is not None and result["exit_code"] < 0:
