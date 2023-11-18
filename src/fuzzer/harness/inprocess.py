@@ -54,7 +54,7 @@ class InProcessHarness(BaseHarness):
         while True:
             exit_code = self.process.poll()
             if exit_code is not None:
-                self.open = False
+                self.kill()
                 if exit_code >= 0:
                     raise HarnessException("fuck the harness crashed...")
 
@@ -133,6 +133,7 @@ class InProcessHarness(BaseHarness):
 
     def kill(self):
         self.process.kill()
+        self.server.close()
         self.connection.close()
         self.open = False
 
@@ -247,11 +248,18 @@ class UnknownMessageTypeException(HarnessException):
 
 
 def main():
-    harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
-    print("result 1:", harness.run(b"trivial\n2\n"))
-    print("result 2:", harness.run(b"trivial\n-524288\n"))
-    print("result 3:", harness.run(b"trivial\n"))
-    for i in range(1000):
-        harness.run(b"trivial\n2\n")
-    harness.set_debug(True)
-    print("result 4:", harness.run(b"trivial\n-524288\n"))
+    harness = InProcessHarness(
+        Path("tests/binaries/fuzz_targets/plaintext2"), debug=True
+    )
+    print("result 1:", harness.run(b"trivial\n2\n"))  # exit code 0
+    print("result 2:", harness.run(b"trivial\n-524288\n"))  # crash, SIGSEGV
+    print("result 3:", harness.run(b"trivial\n"))  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
+    print("result 4:", harness.run(b"trivial\n-524288\n"))  # exit code 0
+    # for i in range(1000):
+    #     harness.run(b"trivial\n2\n")
+    # harness.set_debug(True)
+    # print("result 5:", harness.run(b"trivial\n-524288\n"))  # exit code 0
