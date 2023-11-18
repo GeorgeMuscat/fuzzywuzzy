@@ -1,7 +1,6 @@
 import signal
 import sys
 from pathlib import Path
-from pprint import pformat
 from typing import BinaryIO, Callable, Optional
 
 import click
@@ -10,7 +9,7 @@ import magic
 from fuzzer.harness import Harness, PopenHarness
 from fuzzer.harness.base import HarnessResult
 from fuzzer.utils import Reporter, round_robin
-from fuzzer.wrr import WeightedRoundRobinFlatteningIterator, WeightedRoundRobinIterator
+from fuzzer.wrr import WeightedRoundRobinFlatteningIterator
 
 from .hunters import MIME_TYPE_TO_HUNTERS, Hunter
 
@@ -66,10 +65,11 @@ def fuzz(
     hunters = MIME_TYPE_TO_HUNTERS.get(mime_type)
 
     if hunters is None:
+        hunters = MIME_TYPE_TO_HUNTERS["text/plain"]
         # TODO: Don't use a CLI-specific error in a library function.
-        raise click.UsageError(
-            "sample_input_file does not contain data of a compatible format"
-        )
+        # raise click.UsageError(
+        #     "sample_input_file does not contain data of a compatible format"
+        # )
 
     if "64-bit" in magic.from_file(binary):
         harness = PopenHarness(binary)

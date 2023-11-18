@@ -1,3 +1,4 @@
+import io
 import os
 import socket
 import threading
@@ -12,6 +13,8 @@ MSG_ACK = 0x01
 MSG_TARGET_START = 0x02
 MSG_TARGET_RESET = 0x03
 MSG_LIBC_CALL = 0x04
+
+BUF_MAX_SIZE = 1048576
 
 
 class FuzzerMessage(TypedDict):
@@ -35,15 +38,39 @@ class InProcessHarness(BaseHarness):
         self.start()
 
     def run(self, input: bytes) -> HarnessResult:
+        if (len(input) > BUF_MAX_SIZE):
+            return {
+                "duration": 0,
+                "exit_code": 0,
+                "events": [],
+            }
         if not self.open:
             self.start()
 
         assert self.process.stdin is not None
 
         self._await_start()
+
         start = time.time()
+
         self.process.stdin.write(input)
         self.process.stdin.flush()
+
+        # print("write")
+        # if len(input) > 10000:
+        #     i = 0
+        #     while len(input) - i > 10000:
+        #         self.process.stdin.write(input[i:i+10000])
+        #         self.process.stdin.flush()
+        #         i += 10000
+        #     self.process.stdin.write(input[i:-1])
+        #     self.process.stdin.flush()
+        # else:
+        #     self.process.stdin.write(input)
+        #     print("flush")
+        #     self.process.stdin.flush()
+        #     print("done flush")
+
         self.process.stdin.close()
         self._send_ack()
 
@@ -201,7 +228,7 @@ class InProcessHarness(BaseHarness):
     def _send_ack(self):
         if self.debug:
             print("sent:", {"msg_type": MSG_ACK, "data": {}})
-        self.connection.send(MSG_ACK.to_bytes(1))
+        self.connection.send(MSG_ACK.to_bytes(1, byteorder="little"))
 
 
 class HarnessException(Exception):
@@ -219,4 +246,4 @@ class UnknownMessageTypeException(HarnessException):
 def main():
     harness = InProcessHarness(Path("tests/binaries/fuzz_targets/plaintext2"))
     for i in range(20):
-        harness.run(b"A" * 32768)
+        harness.run(b"A" * 66000)

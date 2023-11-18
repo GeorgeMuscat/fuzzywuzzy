@@ -1,3 +1,4 @@
+import random
 from typing import Iterator
 
 # A list of 'known' integers that may have some significance to the current binary - common buffer sizes, option menus, etc.
@@ -13,6 +14,8 @@ KNOWN_INTS: list[int] = list(
         *(-(2**i) for i in range(1, 32)),  # -(2^i)
         *(2**i + 1 for i in range(1, 32)),  # 2^i + 1
         0xFF,
+ #       -2147280903
+        -2047000000
     }
 )
 
@@ -48,3 +51,10 @@ def known_integer_ascii_hex_with_prefix_mutation(
 ) -> Iterator[bytes]:
     for i in KNOWN_INTS:
         yield hex(i).encode()
+
+def known_integer_nearby(sample_input: int) -> Iterator[int]:
+    for i in KNOWN_INTS:
+        for j in range(0, 2000):
+            x = random.randint(0, 1000000)
+            yield i + x
+            yield i - x
