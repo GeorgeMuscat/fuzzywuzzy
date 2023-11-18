@@ -86,7 +86,7 @@ class InProcessHarness(BaseHarness):
                     "events": events,
                 }
             elif msg["msg_type"] == MSG_LIBC_CALL:
-                self._send_ack()
+                # self._send_ack()
                 events.append(
                     (
                         "libc_call",
