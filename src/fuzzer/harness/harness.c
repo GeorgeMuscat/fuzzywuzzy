@@ -133,7 +133,6 @@ void fuzzywuzzy_log_libc_call(const char *func_name, void *return_addr) {
     struct fuzzer_msg_t msg = {.msg_type = MSG_LIBC_CALL, .data = {.libc_call = {"", return_addr}}};
     REAL(strcpy)(msg.data.libc_call.func_name, func_name);
     fuzzywuzzy_write_message(&fuzzywuzzy_ctrl.sock, &msg);
-    //fuzzywuzzy_expect_ack(&fuzzywuzzy_ctrl.sock);
 }
 
 /**

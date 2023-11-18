@@ -1,13 +1,12 @@
 import os
 import socket
-import tempfile
 import threading
 import time
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen
 from typing import Optional, TypedDict
 
-from .base import BaseHarness
+from .base import BaseHarness, HarnessResult
 
 TIMEOUT = 1
 
@@ -15,8 +14,6 @@ MSG_ACK = 0x01
 MSG_TARGET_START = 0x02
 MSG_TARGET_RESET = 0x03
 MSG_LIBC_CALL = 0x04
-MSG_INPUT_REQUIRED = 0x05
-MSG_INPUT_RESPONSE = 0x06
 
 
 class FuzzerMessage(TypedDict):
@@ -36,7 +33,7 @@ class InProcessHarness(BaseHarness):
         self.debug = debug
         self.start()
 
-    def run(self, input: bytes):
+    def run(self, input: bytes) -> HarnessResult:
         if not self.open:
             self.start()
 
@@ -54,12 +51,13 @@ class InProcessHarness(BaseHarness):
         while True:
             exit_code = self.process.poll()
             if exit_code is not None:
-                self.open = False
+                self.kill()
+
                 if exit_code >= 0:
                     raise HarnessException("fuck the harness crashed...")
 
                 duration = time.time() - start
-                self.kill()
+
                 return {
                     "duration": duration,
                     "exit_code": exit_code,
@@ -90,13 +88,10 @@ class InProcessHarness(BaseHarness):
                 events.append(
                     (
                         "libc_call",
-                        msg["data"]["func_name"],
+                        msg["data"]["func_name"].decode(),  # type: ignore
                         msg["data"]["return_addr"],
                     )
                 )
-            elif msg["msg_type"] == MSG_INPUT_REQUIRED:
-                # determine if input requirement is satisfied
-                self._write_message(MSG_INPUT_RESPONSE, {"can_satisfy": int(True)})
             else:
                 raise UnexpectedMessageTypeException(
                     f"received unexpected message type {msg['msg_type']} during target execution"
@@ -160,15 +155,6 @@ class InProcessHarness(BaseHarness):
     def _read_uint8_t(self):
         return self._read_sized_int(1)
 
-    def _write_sized_int(self, v: int, bytes: int):
-        self.connection.send(v.to_bytes(bytes, byteorder="little"))
-
-    def _write_uint8_t(self, v: int):
-        self._write_sized_int(v, 1)
-
-    def _write_bool(self, v: int):
-        self._write_sized_int(v, 1)
-
     def _read_message(self) -> Optional[FuzzerMessage]:
         try:
             msg_type = self._read_uint8_t()
@@ -179,7 +165,7 @@ class InProcessHarness(BaseHarness):
         if msg_type is None:
             return None
 
-        if msg_type in [MSG_ACK, MSG_INPUT_RESPONSE]:
+        if msg_type in [MSG_ACK]:
             raise UnexpectedMessageTypeException(
                 f"did not expect to receive message type {msg_type}"
             )
@@ -190,9 +176,6 @@ class InProcessHarness(BaseHarness):
         elif msg_type == MSG_LIBC_CALL:
             data["func_name"] = self._read_bytes(64).rstrip(b"\0")
             data["return_addr"] = self._read_size_t()
-        elif msg_type == MSG_INPUT_REQUIRED:
-            data["flags"] = self._read_uint8_t()
-            data["len"] = self._read_size_t()
         else:
             raise UnknownMessageTypeException(
                 f"received unexpected message type {msg_type}"
@@ -202,29 +185,6 @@ class InProcessHarness(BaseHarness):
             print("received:", {"msg_type": msg_type, "data": data})
         return {"msg_type": msg_type, "data": data}
 
-    def _write_message(self, msg_type: int, data: dict[str, int] = {}):
-        if msg_type in [
-            MSG_TARGET_START,
-            MSG_TARGET_RESET,
-            MSG_LIBC_CALL,
-            MSG_INPUT_REQUIRED,
-        ]:
-            raise UnexpectedMessageTypeException(
-                f"did not expect to send message type {msg_type}"
-            )
-        elif msg_type in [MSG_ACK, MSG_INPUT_RESPONSE]:
-            self._write_uint8_t(msg_type)
-            if self.debug:
-                print("sent:", {"msg_type": msg_type, "data": data})
-            if msg_type == MSG_ACK:
-                pass
-            elif msg_type == MSG_INPUT_RESPONSE:
-                self._write_bool(data["can_satisfy"])
-        else:
-            raise UnknownMessageTypeException(
-                f"tried to send unexpected message type {msg_type}"
-            )
-
     def _await_start(self):
         msg = self._read_message()
         assert msg is not None
@@ -233,7 +193,9 @@ class InProcessHarness(BaseHarness):
         ), f"received msg type {hex(msg['msg_type'])}, was expecting {hex(MSG_TARGET_START)}"
 
     def _send_ack(self):
-        self._write_message(MSG_ACK)
+        if self.debug:
+            print("sent:", {"msg_type": MSG_ACK, "data": {}})
+        self.connection.send(MSG_ACK.to_bytes(1))
 
 
 class HarnessException(Exception):
