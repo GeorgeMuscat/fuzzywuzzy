@@ -1,12 +1,13 @@
 import os
 import socket
+import tempfile
 import threading
 import time
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen
 from typing import Optional, TypedDict
 
-from .base import Harness
+from .base import BaseHarness
 
 TIMEOUT = 1
 
@@ -23,7 +24,7 @@ class FuzzerMessage(TypedDict):
     data: dict[str, int]
 
 
-class InProcessHarness(Harness):
+class InProcessHarness(BaseHarness):
     process: Popen
     connection: socket.socket
     open: bool
@@ -102,6 +103,9 @@ class InProcessHarness(Harness):
                 raise UnexpectedMessageTypeException(
                     f"received unexpected message type {msg['msg_type']} during target execution"
                 )
+
+    def set_debug(self, debug: bool):
+        self.debug = debug
 
     def start(self):
         socket_path = (
@@ -195,7 +199,8 @@ class InProcessHarness(Harness):
                 f"received unexpected message type {msg_type}"
             )
 
-        # print("received:", {"msg_type": msg_type, "data": data})
+        if self.debug:
+            print("received:", {"msg_type": msg_type, "data": data})
         return {"msg_type": msg_type, "data": data}
 
     def _write_message(self, msg_type: int, data: dict[str, int] = {}):
@@ -210,7 +215,8 @@ class InProcessHarness(Harness):
             )
         elif msg_type in [MSG_ACK, MSG_INPUT_RESPONSE]:
             self._write_uint8_t(msg_type)
-            # print("sent:", {"msg_type": msg_type, "data": data})
+            if self.debug:
+                print("sent:", {"msg_type": msg_type, "data": data})
             if msg_type == MSG_ACK:
                 pass
             elif msg_type == MSG_INPUT_RESPONSE:
@@ -248,3 +254,7 @@ def main():
     print("result 1:", harness.run(b"trivial\n2\n"))
     print("result 2:", harness.run(b"trivial\n-524288\n"))
     print("result 3:", harness.run(b"trivial\n"))
+    for i in range(1000):
+        harness.run(b"trivial\n2\n")
+    harness.set_debug(True)
+    print("result 4:", harness.run(b"trivial\n-524288\n"))

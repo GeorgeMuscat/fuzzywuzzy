@@ -2,13 +2,13 @@ import time
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, Popen, TimeoutExpired
 
-from .base import Harness
+from .base import BaseHarness
 
 TIMEOUT = 1
 
 
-class PopenHarness(Harness):
-    def __init__(self, binary_path: Path):
+class PopenHarness(BaseHarness):
+    def __init__(self, binary_path: Path, debug: bool = False):
         self.binary_path = binary_path
 
     def run(self, input: bytes):
@@ -29,6 +29,6 @@ class PopenHarness(Harness):
 
         return {
             "duration": duration,
-            "exit_code": process.returncode if not timed_out else None,
+            "exit_code": None if timed_out else process.returncode,
             "events": [],
         }

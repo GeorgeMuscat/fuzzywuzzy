@@ -66,7 +66,7 @@ def fuzz(binary: Path, sample_input_file: BinaryIO) -> Optional[bytes]:
         result = harness.run(mutation)
 
         reporter.inc_mutations() if reporter != None else None
-        if result["exit_code"] < 0:
+        if result["exit_code"] is not None and result["exit_code"] < 0:
             return mutation
 
 
