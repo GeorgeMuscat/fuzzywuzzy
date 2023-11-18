@@ -21,9 +21,9 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     assert result is not None, "could not find bad input"
 
     harness = Harness(binary)
-    return_code = harness.run(result)
-    assert type(return_code) is int
-    assert return_code < 0
+    harness_result = harness.run(result[0])
+    assert type(harness_result["exit_code"]) is int
+    assert harness_result["exit_code"] < 0
 
     assert (end - start) < FUZZING_TIMEOUT
 
