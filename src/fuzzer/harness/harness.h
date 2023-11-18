@@ -11,13 +11,31 @@
 
 #define MMAP_BASE 0x20000000
 
-#define CTRL_OFFSET "0x7c"  // if everything stop working, check this
+#ifdef __x86_64__
+#define SMALL_MALLOC_SIZE 0x10
+#else
+#define SMALL_MALLOC_SIZE 0x08
+#endif
 
+#ifdef __x86_64__
+#define CTRL_OFFSET "0x100"  // if everything stop working, check this
+#else
+#define CTRL_OFFSET "0xa0"  // if everything stop working, check this
+#endif
+
+#ifdef __x86_64__
+#define save_ra()                  \
+void *ra = NULL;                   \
+    __asm__(                       \
+        "mov %[asm_ra], [rbp+8]\n" \
+        : [asm_ra] "=&r"(ra))
+#else
 #define save_ra()                  \
     void *ra = NULL;               \
     __asm__(                       \
         "mov %[asm_ra], [ebp+4]\n" \
         : [asm_ra] "=&r"(ra))
+#endif
 
 #define save_ebx()               \
     void *ebx = NULL;            \
@@ -33,12 +51,43 @@ struct mmap_data {
 struct memory_region {
     void *base;
     void *top;
-    size_t size;
+#ifdef __x86_64__
+    size_t size_in_qwords;
+#else
+    size_t size_in_dwords;
+#endif
+
 
     void *saved_data;
 };
 
+#ifdef __x86_64__
+#define REG_SIZE "0x80"
+#define MEMORY_REGION_SIZE "0x200"
+#else
+#define REG_SIZE "0x20"
+#define MEMORY_REGION_SIZE "0x100"
+#endif
+
 struct control_data {
+#ifdef __x86_64
+    void *rax;
+    void *rcx;
+    void *rdx;
+    void *rbx;
+    void *rsp;
+    void *rbp;
+    void *rsi;
+    void *rdi;
+    void *r8;
+    void *r9;
+    void *r10;
+    void *r11;
+    void *r12;
+    void *r13;
+    void *r14;
+    void *r15;
+#else
     void *eax;
     void *ecx;
     void *edx;
@@ -47,6 +96,7 @@ struct control_data {
     void *ebp;
     void *esi;
     void *edi;
+#endif
 
     struct memory_region writable[NUM_REGIONS];
     size_t writable_index;
