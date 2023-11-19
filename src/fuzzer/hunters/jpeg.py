@@ -22,6 +22,7 @@ MARKERS = {
 
 
 def region_hunter(from_marker: bytes, to_marker: bytes):
+    """Will take a start marker and end marker and mutate the region between them"""
     MUTATORS = [flip_byte_mutation, repeat_segment, known_bytes_mutation]
 
     def inner(sample_input: bytes) -> Iterator[bytes]:
@@ -36,9 +37,7 @@ def region_hunter(from_marker: bytes, to_marker: bytes):
 
 
 def marker_hunter(sample_input: bytes):
-    """
-    Hunts all occurances of a marker
-    """
+    """Hunts all occurances of a marker"""
     MUTATORS = [delete_keywords, repeat_keywords]
 
     for mutated_input in round_robin(
@@ -57,6 +56,7 @@ def header_hunter(sample_input: bytes):
 
 
 def quantization_table_hunter(sample_input: bytes) -> Iterator[bytes]:
+    """Gets the quantization table and performs mutations on it"""
     DQT = MARKERS["Quantization Table"]
     SOF = MARKERS["Start of Frame"]
     
@@ -65,6 +65,7 @@ def quantization_table_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 
 def frame_hunter(sample_input: bytes) -> Iterator[bytes]:
+    """Gets the frame section and performs mutations on it"""
     SOF = MARKERS["Start of Frame"]
     DHT = MARKERS["Define Huffman Table"]
     
@@ -73,6 +74,7 @@ def frame_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 
 def huffman_hunter(sample_input: bytes) -> Iterator[bytes]:
+    """Gets the huffman table and performs mutations on it"""
     DHT = MARKERS["Define Huffman Table"]
     SOS = MARKERS["Start of Scan"]
     
@@ -80,6 +82,7 @@ def huffman_hunter(sample_input: bytes) -> Iterator[bytes]:
         yield mutation
 
 def image_hunter(sample_input: bytes) -> Iterator[bytes]:
+    """Gets the image region and performs mutations on it"""
     SOS = MARKERS["Start of Scan"]
     EOI = MARKERS["End of Image"]
     
