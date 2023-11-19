@@ -15,6 +15,8 @@ MSG_TARGET_RESET = 0x03
 MSG_LIBC_CALL = 0x04
 
 BUF_MAX_SIZE = 1048576
+HARNESS_FILENAME = "harness.so"
+HARNESS_PATH = str((Path(__file__).parent / HARNESS_FILENAME).resolve())
 
 
 class FuzzerMessage(TypedDict):
@@ -38,7 +40,7 @@ class InProcessHarness(BaseHarness):
         self.start()
 
     def run(self, input: bytes) -> HarnessResult:
-        if (len(input) > BUF_MAX_SIZE):
+        if len(input) > BUF_MAX_SIZE:
             return {
                 "duration": 0,
                 "exit_code": 0,
@@ -55,23 +57,8 @@ class InProcessHarness(BaseHarness):
 
         self.process.stdin.write(input)
         self.process.stdin.flush()
-
-        # print("write")
-        # if len(input) > 10000:
-        #     i = 0
-        #     while len(input) - i > 10000:
-        #         self.process.stdin.write(input[i:i+10000])
-        #         self.process.stdin.flush()
-        #         i += 10000
-        #     self.process.stdin.write(input[i:-1])
-        #     self.process.stdin.flush()
-        # else:
-        #     self.process.stdin.write(input)
-        #     print("flush")
-        #     self.process.stdin.flush()
-        #     print("done flush")
-
         self.process.stdin.close()
+
         self._send_ack()
 
         events = []
@@ -150,7 +137,7 @@ class InProcessHarness(BaseHarness):
             stdout=None if self.debug else DEVNULL,
             stderr=None if self.debug else DEVNULL,
             env={
-                "LD_PRELOAD": "./src/fuzzer/harness/harness.so",
+                "LD_PRELOAD": HARNESS_PATH,
                 "FUZZYWUZZY_SOCKET_PATH": socket_path,
             },
         )
@@ -220,7 +207,9 @@ class InProcessHarness(BaseHarness):
 
     def _await_start(self):
         msg = self._read_message()
-        assert msg is not None
+        while msg is None:
+            self.restart()
+            msg = self._read_message()
         assert (
             msg["msg_type"] == MSG_TARGET_START
         ), f"received msg type {hex(msg['msg_type'])}, was expecting {hex(MSG_TARGET_START)}"
