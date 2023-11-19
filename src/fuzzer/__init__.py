@@ -82,18 +82,18 @@ def fuzz(
     result = harness.run(sample_input)
     initial_nodes = merge_coverage_events(coverage_graph, result["events"])
 
-    wrr_iter = WeightedRoundRobinFlatteningIterator(
-        [(initial_nodes, mutation_iterator(hunters, sample_input))]
-    )
+    #wrr_iter = WeightedRoundRobinFlatteningIterator(
+    #    [(initial_nodes, mutation_iterator(hunters, sample_input))]
+    #)
 
-    for mutation in wrr_iter:
+    for mutation in mutation_iterator(hunters, sample_input):
         result = harness.run(mutation)
-        new_nodes = merge_coverage_events(coverage_graph, result["events"])
+        #new_nodes = merge_coverage_events(coverage_graph, result["events"])
 
-        if new_nodes > 0:
-            # If we found new branches (calls to libc), then mutate this input further.
-            # More nodes uncovered = more code and more opportunities for bugs, so give it more weight.
-            wrr_iter.append_next(new_nodes, mutation_iterator(hunters, mutation))
+        #if new_nodes > 0:
+        #    # If we found new branches (calls to libc), then mutate this input further.
+        #    # More nodes uncovered = more code and more opportunities for bugs, so give it more weight.
+        #    wrr_iter.append_next(new_nodes, mutation_iterator(hunters, mutation))
 
         result_callback(result)
         if result["exit_code"] is not None and result["exit_code"] < 0:

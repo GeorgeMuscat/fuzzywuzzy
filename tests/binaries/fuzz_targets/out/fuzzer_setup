@@ -1,0 +1,4 @@
+# environment variables:
+AFL_KILL_SIGNAL=9
+# command line:
+'afl-fuzz' '-i' 'seeds' '-o' 'out' '-m' 'none' '-n' '-d' '--' './jpg1'

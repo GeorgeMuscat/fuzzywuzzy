@@ -28,8 +28,6 @@ def region_hunter(from_marker: bytes, to_marker: bytes):
         after_region = to_marker + to_marker.join(sample_input.split(to_marker)[1:])
         region = sample_input[len(before_region) : len(sample_input) - len(after_region)]
 
-        print(len(region) * 256)
-
         for mutated_region in round_robin([mutator(region) for mutator in MUTATORS]):
             yield before_region + mutated_region + after_region
     

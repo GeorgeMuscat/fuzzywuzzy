@@ -11,6 +11,7 @@ from fuzzer.mutations.known_integers import (
     known_integer_packed_le_mutation,
 )
 from fuzzer.mutations.repeated_parts import repeat_last_segment_mutation
+from fuzzer.mutations.format_specifiers import random_format_specifiers
 
 from ..utils import round_robin, tag
 
@@ -24,6 +25,7 @@ MUTATORS = [
     flip_byte_mutation,
     random_insert_null_mutation,
     repeat_last_segment_mutation,
+    random_format_specifiers
 ]
 
 
