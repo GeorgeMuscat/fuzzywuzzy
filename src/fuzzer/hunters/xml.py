@@ -20,7 +20,10 @@ MUTATORS = [
 
 def xml_attribute_hunter(sample_input: bytes) -> Iterator[bytes]:
     """For every node in the xml tree, try fuzzing the attributes"""
-    root = xml.fromstring(sample_input)
+    try:
+        root = xml.fromstring(sample_input)
+    except xml.ParseError:
+        return
     for mutation in round_robin([mutator(sample_input) for mutator in MUTATORS]):
         for el in root.iter():
             for attr in el.attrib:
@@ -29,7 +32,10 @@ def xml_attribute_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 def xml_text_hunter(sample_input: bytes) -> Iterator[bytes]:
     """For every node in the xml tree, try fuzzing the text field"""
-    root = xml.fromstring(sample_input)
+    try:
+        root = xml.fromstring(sample_input)
+    except xml.ParseError:
+        return
     for mutation in round_robin([mutator('') for mutator in MUTATORS]):
         for el in root.iter():
             el.text = mutation.decode()
@@ -37,14 +43,20 @@ def xml_text_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 def xml_tag_hunter(sample_input: bytes) -> Iterator[bytes]:
     """For every node in the xml tree, try fuzzing the text field"""
-    root = xml.fromstring(sample_input)
+    try:
+        root = xml.fromstring(sample_input)
+    except xml.ParseError:
+        return
     for mutation in round_robin([mutator('') for mutator in MUTATORS]):
         for el in root.iter():
             el.tag = mutation.decode()
             yield xml.tostring(root)
 
 def xml_repeated_lines(sample_input: bytes) -> Iterator[bytes]:
-    root = xml.fromstring(sample_input)
+    try:
+        root = xml.fromstring(sample_input)
+    except xml.ParseError:
+        return
     for i in range(len(root)):
         for _ in range(100):
             root.append(root[i])

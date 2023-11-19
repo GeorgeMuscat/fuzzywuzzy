@@ -45,6 +45,7 @@ typedef FILE* FILE_ptr;
 #define SPLIT_off_t LPAREN off_t COMMA
 #define SPLIT_va_list LPAREN va_list COMMA
 #define SPLIT_FILE_ptr LPAREN FILE* COMMA
+#define SPLIT_long LPAREN long COMMA
 
 #define CAT(arg1, arg2) CAT1(arg1, arg2)
 #define CAT1(arg1, arg2) CAT2(arg1, arg2)
@@ -73,6 +74,15 @@ typedef FILE* FILE_ptr;
 #define GEN_DEF(FN_SIG, ...) \
     EXTRACT_TYPE(FN_SIG)     \
     (CAT(*fuzzywuzzy_real_, EXTRACT_NAME(FN_SIG)))(__VA_ARGS__);
+
+#define GEN_WRAPPERNOARG(FN_SIG)                                                                    \
+    GEN_DEF(FN_SIG)                                                                    \
+    FN_SIG() {                                                                           \
+        LOAD_GUARD(EXTRACT_NAME(FN_SIG));                                                           \
+        save_ra();                                                                                  \
+        fuzzywuzzy_log_libc_call(__func__, ra);                                                     \
+        return (*CAT(fuzzywuzzy_real_, EXTRACT_NAME(FN_SIG)))(); \
+    }
 
 #define GEN_WRAPPER(FN_SIG, ...)                                                                    \
     GEN_DEF(FN_SIG, __VA_ARGS__)                                                                    \

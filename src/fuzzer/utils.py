@@ -9,7 +9,6 @@ SIGNALS = {
     4: "SIGILL",
     5: "SIGTRAP",
     6: "SIGABRT",
-    6: "SIGIOT",
     7: "SIGBUS",
     8: "SIGFPE",
     9: "SIGKILL",
