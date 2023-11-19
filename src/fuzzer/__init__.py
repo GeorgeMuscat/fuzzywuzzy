@@ -6,14 +6,14 @@ from typing import BinaryIO, Callable, Optional
 import click
 import magic
 
+from fuzzer.coverage import CoverageGraph, merge_coverage_events
 from fuzzer.harness import Harness, PopenHarness
 from fuzzer.harness.base import HarnessResult
-from fuzzer.utils import Reporter, round_robin
+from fuzzer.reporter import Reporter
+from fuzzer.utils import round_robin
 from fuzzer.wrr import WeightedRoundRobinFlatteningIterator
 
 from .hunters import MIME_TYPE_TO_HUNTERS, Hunter
-
-CoverageGraph = dict[tuple, "CoverageGraph"]
 
 
 @click.command()
@@ -43,7 +43,7 @@ def cli(binary: Path, sample_input: BinaryIO, output_file: BinaryIO):
 
     result = fuzz(binary, sample_input, reporter.log_result)
     if result is not None:
-        reporter.print_crash_output(result[1])
+        reporter.print_crash_output(result[1], result[2])
         output_file.write(result[0])
     else:
         reporter.print("We couldn't break the binary T_T")
@@ -100,18 +100,6 @@ def fuzz(
             return mutation, result, coverage_graph
 
     return None
-
-
-def merge_coverage_events(graph: CoverageGraph, events: list[tuple]):
-    """Adds `events` into `graph` and returns the number of newly discovered nodes."""
-    head = graph
-    new_nodes = 0
-    for event in events:
-        if event not in head:
-            head[event] = {}
-            new_nodes += 1
-        head = head[event]
-    return new_nodes
 
 
 def sanity():
