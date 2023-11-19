@@ -1,4 +1,0 @@
-# environment variables:
-AFL_KILL_SIGNAL=9
-# command line:
-'afl-fuzz' '-i' 'jpg1.txt' '-o' 'jpg1' './jpg1'
