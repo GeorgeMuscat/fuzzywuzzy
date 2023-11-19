@@ -52,7 +52,8 @@ class Reporter:
     - Binary crashed with signal {lookup_signal(result['exit_code'])}
     - Bad input took {result['duration']:.2f} seconds to run
     - Notable events: {result['events'] if len(result['events']) < 10 else f"[bold]See {events_fn} for a list of events[/bold]"}
-    - Coverage graph: [bold]See {mermaid_fn} for a mermaid.js graph of coverage information (copy paste contents into https://mermaid.live/)[/bold]"""  # TODO: actually make events look ok
+    - Coverage graph: [bold]See {mermaid_fn} for a mermaid.js graph of coverage information
+                      (copy paste contents of this file into https://mermaid.live/)[/bold]"""  # TODO: actually make events look ok
 
         if len(result["events"]) >= 10:
             with open(events_fn, "w") as f:
