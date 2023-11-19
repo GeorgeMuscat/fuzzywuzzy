@@ -38,7 +38,7 @@ def generate_mermaid_graph(
             graphs.append((child, id, depth + 1))
         graphs.pop(0)
 
-    if result is not None:
+    if result is not None and len(result["events"]) > 0:
         event_count = len(result["events"])
         id = event_id(result["events"][event_count - 1], event_count - 1)
         if result["exit_code"] is not None:

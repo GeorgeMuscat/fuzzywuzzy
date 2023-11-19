@@ -72,6 +72,16 @@ void fuzzywuzzy_preload_hooks(void) {
     LOAD(signal);
 }
 
+_Noreturn void abort() {
+    save_ra();
+    fuzzywuzzy_log_libc_call(__func__, ra);
+
+    fuzzywuzzy_reset(-6);
+
+    // this'll never return :)
+    for (;;);
+}
+
 _Noreturn void exit(int status) {
     save_ra();
     fuzzywuzzy_log_libc_call(__func__, ra);
@@ -79,9 +89,10 @@ _Noreturn void exit(int status) {
     fuzzywuzzy_reset(status);
 
     // this'll never return :)
-    for (;;)
-        ;
+    for (;;);
 }
+
+
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     save_ra();
