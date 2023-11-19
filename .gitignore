@@ -161,9 +161,15 @@ cython_debug/
 .vscode/settings.json
 *.iml
 
-
 # macos things
 .DS_Store
 
 # Fuzzer output
 bad.txt
+events-*.json
+coverage-*.mermaid
+
+# Compiled binaries
+tests/binaries/hang/hang
+tests/binaries/safe/safe
+tests/binaries/segv/segv

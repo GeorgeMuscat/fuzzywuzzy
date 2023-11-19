@@ -1,10 +1,11 @@
 import time
+from io import BytesIO
 from pathlib import Path
 
-from fuzzer import fuzz
-from fuzzer.harness import TIMEOUT as HARNESS_TIMEOUT
-from fuzzer.harness import Harness
+import pytest
 
+from fuzzer import fuzz
+from fuzzer.harness import Harness
 
 MINUTE = 60  # certified Ham moment
 FUZZING_TIMEOUT = MINUTE * 3
@@ -16,26 +17,41 @@ def test_fuzz(binary_path: tuple[Path, Path]):
     binary, input = binary_path
     with open(input, "rb") as f:
         start = time.time()
-        result = fuzz(binary, f)
+        output = fuzz(binary, f)
+        assert output is not None, "could not find bad input"
+        mutation, result, coverage = output
         end = time.time()
-    assert result is not None, "could not find bad input"
+    assert result is not None
+    assert mutation is not None
 
     harness = Harness(binary)
-    return_code = harness.run(result)
-    assert type(return_code) is int
-    assert return_code < 0
+    result = harness.run(mutation)
+    assert result["exit_code"] is not None and result["exit_code"] < 0
 
     assert (end - start) < FUZZING_TIMEOUT
 
 
+@pytest.mark.skip(reason="takes ages to try every mutation")
+def test_safe():
+    """Tests that we CAN'T find a bad input for a binary that has no vulnerabilities."""
+    with BytesIO(b"") as f:
+        result = fuzz(Path("tests", "binaries", "safe", "safe"), f)
+    assert result is None, "somehow found bad input"
+
+
 def test_hang_timeout():
     """Tests that the harness stops processes that last beyond the timeout."""
-    hang_path = Path("tests", "binaries", "hang", "hang")
-
-    harness = Harness(hang_path)
+    harness = Harness(Path("tests", "binaries", "hang", "hang"))
 
     start = time.time()
-    assert harness.run(b"") == "timeout"
-    end = time.time()
+    assert harness.run(b"")["exit_code"] is None
+    assert (time.time() - start) > Harness.TIMEOUT
 
-    assert (end - start) > HARNESS_TIMEOUT
+
+def test_detect_segfault():
+    """Tests that the harness can detect a segfault correctly."""
+    harness = Harness(Path("tests", "binaries", "segv", "segv"))
+
+    start = time.time()
+    assert harness.run(b"")["exit_code"] == -11
+    assert (time.time() - start) > Harness.TIMEOUT
