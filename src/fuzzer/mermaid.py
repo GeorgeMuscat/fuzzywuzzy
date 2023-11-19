@@ -33,14 +33,18 @@ def get_lines(graph: CoverageGraph, parent_id: str, depth: int):
     return lines
 
 
-def generate_mermaid_graph(graph: CoverageGraph, result: Optional[HarnessResult] = None):
+def generate_mermaid_graph(
+    graph: CoverageGraph, result: Optional[HarnessResult] = None
+):
     lines = get_lines(graph, "prog_start", 0)
 
     if result is not None:
         event_count = len(result["events"])
         id = event_id(result["events"][event_count - 1], event_count - 1)
         if result["exit_code"] is not None:
-            lines.append(f'prog_end["Program crashed\\n{lookup_signal(result['exit_code'])} ({result['exit_code'] * -1})"]')
+            lines.append(
+                f'prog_end["Program crashed\\n{lookup_signal(result["exit_code"])} ({result["exit_code"] * -1})"]'
+            )
             for d, event in enumerate(result["events"]):
                 lines.append(f"style prog_start {BAD_INPUT_STYLE}")
                 lines.append(f"style {event_id(event, d)} {BAD_INPUT_STYLE}")
