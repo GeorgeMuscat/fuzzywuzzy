@@ -18,7 +18,14 @@ MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
     "text/plain": [whole_text_hunter, segment_hunter(b"\n")],
     "application/octet-stream": [whole_text_hunter, segment_hunter(b"\n")],
     "text/csv": [whole_text_hunter],
-    "image/jpeg": [marker_hunter, header_hunter, quantization_table_hunter, frame_hunter, huffman_hunter, image_hunter],
+    "image/jpeg": [
+        marker_hunter,
+        header_hunter,
+        quantization_table_hunter,
+        frame_hunter,
+        huffman_hunter,
+ #       image_hunter
+    ],
     "application/json": [
         json_key_hunter,
         json_value_hunter,
