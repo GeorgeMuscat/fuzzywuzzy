@@ -168,3 +168,8 @@ cython_debug/
 bad.txt
 events-*.json
 coverage-*.mermaid
+
+# Compiled binaries
+tests/binaries/hang/hang
+tests/binaries/safe/safe
+tests/binaries/segv/segv

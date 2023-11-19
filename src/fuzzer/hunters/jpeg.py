@@ -24,15 +24,18 @@ def region_hunter(from_marker: bytes, to_marker: bytes):
     MUTATORS = [flip_byte_mutation]
 
     def inner(sample_input: bytes) -> Iterator[bytes]:
-        before_region = sample_input.split(from_marker)[0] + from_marker
-        after_region = to_marker + to_marker.join(sample_input.split(to_marker)[1:])
-        region = sample_input[len(before_region) : len(sample_input) - len(after_region)]
+        after_table = from_marker + b"".join(
+            sample_input.split(from_marker)[1:]
+        )
+        table = sample_input.split(from_marker)[0]
+        before_table = (
+            sample_input.split(to_marker)[0]
+            + to_marker
+        )
 
-        print(len(region) * 256)
+        for mutated_region in round_robin([mutator(table) for mutator in MUTATORS]):
+            yield before_table + mutated_region + after_table
 
-        for mutated_region in round_robin([mutator(region) for mutator in MUTATORS]):
-            yield before_region + mutated_region + after_region
-    
     return inner
 
 
@@ -43,7 +46,7 @@ def marker_hunter(sample_input: bytes):
     MUTATORS = [delete_keywords, repeat_keywords]
 
     for mutated_input in round_robin(
-        [mutator(sample_input, list(MARKERS.values())) for mutator in MUTATORS]
+            [mutator(sample_input, list(MARKERS.values())) for mutator in MUTATORS]
     ):
         yield mutated_input
 
@@ -52,7 +55,7 @@ def header_hunter(sample_input: bytes):
     """Gets the header and performs mutations on it"""
     ADH = MARKERS["Application Default Header"]
     DQT = MARKERS["Quantization Table"]
-    
+
     for mutation in region_hunter(ADH, DQT)(sample_input):
         yield mutation
 
@@ -60,7 +63,7 @@ def header_hunter(sample_input: bytes):
 def quantization_table_hunter(sample_input: bytes) -> Iterator[bytes]:
     DQT = MARKERS["Quantization Table"]
     SOF = MARKERS["Start of Frame"]
-    
+
     for mutation in region_hunter(DQT, SOF)(sample_input):
         yield mutation
 
@@ -68,7 +71,7 @@ def quantization_table_hunter(sample_input: bytes) -> Iterator[bytes]:
 def frame_hunter(sample_input: bytes) -> Iterator[bytes]:
     SOF = MARKERS["Start of Frame"]
     DHT = MARKERS["Define Huffman Table"]
-    
+
     for mutation in region_hunter(SOF, DHT)(sample_input):
         yield mutation
 
@@ -76,13 +79,13 @@ def frame_hunter(sample_input: bytes) -> Iterator[bytes]:
 def huffman_hunter(sample_input: bytes) -> Iterator[bytes]:
     DHT = MARKERS["Define Huffman Table"]
     SOS = MARKERS["Start of Scan"]
-    
+
     for mutation in region_hunter(DHT, SOS)(sample_input):
         yield mutation
 
 def image_hunter(sample_input: bytes) -> Iterator[bytes]:
     SOS = MARKERS["Start of Scan"]
     EOI = MARKERS["End of Image"]
-    
+
     for mutation in region_hunter(SOS, EOI)(sample_input):
         yield mutation
