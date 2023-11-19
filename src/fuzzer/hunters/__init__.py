@@ -4,7 +4,7 @@ from .plaintext import segment_hunter, whole_text_hunter
 
 
 from .json import json_key_hunter, json_value_hunter, json_number_value_hunter, json_array_hunter, json_key_remover
-from .jpeg import marker_hunter, header_hunter, quantization_table_hunter, frame_hunter, huffman_hunter, image_hunter, region_hunter
+from .jpeg import marker_hunter, header_hunter, quantization_table_hunter, frame_hunter, huffman_hunter, image_hunter
 
 from .xml import (
     xml_attribute_hunter,
@@ -19,13 +19,13 @@ MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
     "application/octet-stream": [whole_text_hunter, segment_hunter(b"\n")],
     "text/csv": [whole_text_hunter],
     "image/jpeg": [
-        #region_hunter,
         marker_hunter,
         header_hunter,
         quantization_table_hunter,
         frame_hunter,
         huffman_hunter,
-        image_hunter],
+ #       image_hunter
+    ],
     "application/json": [
         json_key_hunter,
         json_value_hunter,
