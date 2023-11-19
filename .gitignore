@@ -167,3 +167,9 @@ cython_debug/
 # Fuzzer output
 bad.txt
 events-*.json
+
+# Compiled binaries
+tests/binaries/hang/hang
+tests/binaries/safe/safe
+tests/binaries/segv/segv
+
