@@ -71,6 +71,7 @@ def fuzz(
         #     "sample_input_file does not contain data of a compatible format"
         # )
 
+
     if "64-bit" in magic.from_file(binary):
         harness = PopenHarness(binary)
     else:
@@ -80,7 +81,7 @@ def fuzz(
 
     # Initialise the graph with the coverage of the sample input.
     result = harness.run(sample_input)
-    initial_nodes = merge_coverage_events(coverage_graph, result["events"])
+    initial_nodes = merge_coverage_events(coverage_graph, result["events"]) + 1
 
     wrr_iter = WeightedRoundRobinFlatteningIterator(
         [(initial_nodes, mutation_iterator(hunters, sample_input))]
@@ -88,10 +89,10 @@ def fuzz(
 
     for mutation in wrr_iter:
         result = harness.run(mutation)
+
         new_nodes = merge_coverage_events(coverage_graph, result["events"])
 
         if new_nodes > 0:
-            print(new_nodes)
             # If we found new branches (calls to libc), then mutate this input further.
             # More nodes uncovered = more code and more opportunities for bugs, so give it more weight.
             wrr_iter.append_next(new_nodes, mutation_iterator(hunters, mutation))

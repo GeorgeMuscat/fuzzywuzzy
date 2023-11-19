@@ -33,7 +33,10 @@ class WeightedRoundRobinIterator(Generic[T]):
 
     def __next__(self):
         # Get the current item and it's weight.
-        weight, item = self.items[self.idx]
+        try:
+            weight, item = self.items[self.idx]
+        except Exception:
+            raise StopIteration
 
         # If we have already returned this item that many times...
         if self.progress == weight:
@@ -60,9 +63,10 @@ class WeightedRoundRobinFlatteningIterator(
         super().__init__(initial_items)
 
     def __next__(self):
-        iter = super().__next__()
-        try:
-            return next(iter)
-        except StopIteration as e:
-            self.set_current_weight(0)
-            raise e
+        while True:
+            iter = super().__next__()
+            try:
+                return next(iter)
+            except StopIteration as e:
+                self.set_current_weight(0)
+

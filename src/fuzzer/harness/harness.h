@@ -13,7 +13,7 @@
 
 #define MMAP_BASE 0x20000000
 
-#define CTRL_OFFSET "0x7c"  // if everything stop working, check this
+//#define CTRL_OFFSET "0xbc"  // if everything stop working, check this
 
 #define save_ra()                  \
     void *ra = NULL;               \

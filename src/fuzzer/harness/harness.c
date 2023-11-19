@@ -38,6 +38,7 @@ extern GEN_DEF(int munmap, void_ptr addr, size_t length)
 extern void (*(*fuzzywuzzy_real_signal)(int, void (*func)(int)))(int);
 
 struct control_data fuzzywuzzy_ctrl = {0};
+struct control_data *fuzzywuzzy_ctrl_ptr = &fuzzywuzzy_ctrl;
 
 /**
  * Injected main function, this should only be passed to __libc_start_main, never called directly
@@ -54,6 +55,7 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         setvbuf(stdin, fuzzywuzzy_ctrl.stdin_buf, _IOFBF, STDIN_BUF_SIZE);
         fcntl(STDIN_FILENO, F_SETPIPE_SZ, STDIN_BUF_SIZE);
         fuzzywuzzy_restore();
+        fuzzywuzzy_ctrl.context.uc_mcontext.gregs[8] = (greg_t) &fuzzywuzzy_ctrl;
         fuzzywuzzy_init_socket(&fuzzywuzzy_ctrl.sock);
         //endregion
         // we need to do a malloc to initialise the heap, and this needs to be the last item on the heap
@@ -61,10 +63,16 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
         fuzzywuzzy_read_mmap();
     }
 
+    __asm__ (
+            "mov eax, %[ctrl]\n"
+            :
+            : [ctrl] "r"(fuzzywuzzy_ctrl_ptr)
+            : "eax"
+    );
+
     //eax is about to be nuked, who cares what we do to it
     //save reg
     __asm__ (
-            "lea eax, dword [ebx+"CTRL_OFFSET"]\n"
             "mov [eax + 0x00], eax\n"
             "mov [eax + 0x04], ecx\n"
             "mov [eax + 0x08], edx\n"
@@ -73,13 +81,14 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             "mov [eax + 0x14], ebp\n"
             "mov [eax + 0x18], esi\n"
             "mov [eax + 0x1c], edi\n"
-            );
+    );
 
     // save writable memory regions
     __asm__(
+            "mov ebx, eax\n"
             "mov edi, 0\n"                                                  // i = 0 [ctrl.writable]
             "fuzzywuzzy_save_loop_regions:\n"                               // for (; ; ) {
-            "lea eax, dword [ebx+"CTRL_OFFSET"]\n"                          // eax = &fuzzywuzzy_ctrl
+            "mov eax, ebx\n"                                                // eax = &fuzzywuzzy_ctrl
             "mov esi, [eax + 0x20 + 0x100]\n"                               // esi = writable_size
             "cmp edi, esi\n"                                                //
             "jge fuzzywuzzy_save_loop_regions_end\n"                        // if (i >= writable_size) break;
@@ -101,12 +110,11 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             "add edi, 1\n"                                                  // i++;
             "jmp fuzzywuzzy_save_loop_regions\n"                            // }
             "fuzzywuzzy_save_loop_regions_end:\n"
-            );
+    );
 
     // restore registers
     __asm__(
-            "lea eax, dword [ebx+"CTRL_OFFSET"]\n"
-            "mov eax, [eax + 0x00]\n"
+            "mov eax, ebx\n"
             "mov ecx, [eax + 0x04]\n"
             "mov edx, [eax + 0x08]\n"
             "mov ebx, [eax + 0x0c]\n"
@@ -114,7 +122,8 @@ int fuzzywuzzy_main(int argc, char **argv, char **environ) {
             "mov ebp, [eax + 0x14]\n"
             "mov esi, [eax + 0x18]\n"
             "mov edi, [eax + 0x1c]\n"
-            );
+            "mov eax, [eax + 0x00]\n"
+    );
 
 
     __asm__("jmp fuzzywuzzy_first_run\n");
@@ -213,7 +222,7 @@ __attribute__ ((noinline)) void fuzzywuzzy_restore() {
     __asm__(
             "mov edi, 0\n"                                                  // i = 0 [ctrl.writable]
             "fuzzywuzzy_nuke_loop_regions:\n"                               // for (; ; ) {
-            "lea eax, dword [ebx+"CTRL_OFFSET"]\n"                          // eax = &fuzzywuzzy_ctrl
+            "mov eax, ebx\n"                                                // eax = &fuzzywuzzy_ctrl
             "mov esi, [eax + 0x20 + 0x100]\n"                               // esi = writable_size
             "cmp edi, esi\n"                                                //
             "jge fuzzywuzzy_nuke_loop_regions_end\n"                        // if (i >= writable_size) break;
@@ -235,11 +244,10 @@ __attribute__ ((noinline)) void fuzzywuzzy_restore() {
             "add edi, 1\n"                                                  // i++;
             "jmp fuzzywuzzy_nuke_loop_regions\n"                            // }
             "fuzzywuzzy_nuke_loop_regions_end:\n"
-            );
+    );
 
     __asm__(
-            "lea eax, dword [ebx+"CTRL_OFFSET"]\n"
-            "mov eax, [eax + 0x00]\n"
+            "mov eax, ebx\n"
             "mov ecx, [eax + 0x04]\n"
             "mov edx, [eax + 0x08]\n"
             "mov ebx, [eax + 0x0c]\n"
@@ -247,7 +255,8 @@ __attribute__ ((noinline)) void fuzzywuzzy_restore() {
             "mov ebp, [eax + 0x14]\n"
             "mov esi, [eax + 0x18]\n"
             "mov edi, [eax + 0x1c]\n"
-            );
+            "mov eax, [eax + 0x00]\n"
+    );
 
     __asm__("jmp fuzzywuzzy_reset_point\n");
 
@@ -337,9 +346,16 @@ void fuzzywuzzy_read_mmap() {
                 }
                 break;
             case PARSE_STATE_NAME:
+                if (name_start == 0 && buf[i] == '\n') {
+                    //no name
+                    name_start = i - 1;
+                    name_end = i - 1;
+                    state = PARSE_STATE_DONE;
+                    break;
+                }
                 if (name_start == 0 && buf[i] != ' ') {
                     name_start = i;
-                } else if (buf[i] == '\n') {
+                } if (buf[i] == '\n') {
                     name_end = i - 1;
                     state = PARSE_STATE_DONE;
                 }
@@ -350,13 +366,17 @@ void fuzzywuzzy_read_mmap() {
 
         if (state == PARSE_STATE_DONE) {
             bool should_save = true;
-            if (name_end - name_start == 10) {
-                for (int j = name_start; j <= name_end; j--) {
-                    if (buf[name_start] != harness_str[j - name_start]) {
-                        should_save = false;
-                    }
+            bool is_own_mem = true;
+            for (int j = 0; j <= 9; j++) {
+                if (buf[name_end - j] != harness_str[9 - j]) {
+                    is_own_mem = false;
+                    break;
                 }
             }
+            if (is_own_mem) {
+                should_save = false;
+            }
+
             if (prot[1] != 'w') {
                 should_save = false;
             }
@@ -365,7 +385,10 @@ void fuzzywuzzy_read_mmap() {
             if (should_save) {
                 if (REAL(strncmp)(&buf[name_start], heap_str, 6) == 0) {
                     heap_save_index = fuzzywuzzy_ctrl.writable_index;
-                    top = (void*)fuzzywuzzy_ctrl.dummy_malloc + REAL(malloc_usable_size)((void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
+                    void *new_top = (void*)fuzzywuzzy_ctrl.dummy_malloc + REAL(malloc_usable_size)((void*)fuzzywuzzy_ctrl.dummy_malloc) + 0x8;
+                    if (new_top < top) {
+                        top = new_top;
+                    }
                     // size is slightly bigger, just to ensure we capture the next pointer
                 }
                 fuzzywuzzy_ctrl.writable[fuzzywuzzy_ctrl.writable_index] =
@@ -380,7 +403,7 @@ void fuzzywuzzy_read_mmap() {
             marker = i + 1;
         }
     }
-
+    
     fuzzywuzzy_ctrl.writable_saved_base = REAL(mmap)((void*)MMAP_BASE, total_size, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     fuzzywuzzy_ctrl.writable_saved_curr = fuzzywuzzy_ctrl.writable_saved_base;

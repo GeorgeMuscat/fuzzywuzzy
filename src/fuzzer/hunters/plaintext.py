@@ -5,10 +5,14 @@ from fuzzer.mutations.buffer_overflow import buffer_overflow_mutation
 from fuzzer.mutations.insert import random_insert_null_mutation
 from fuzzer.mutations.known_integers import (
     known_integer_ascii_dec_mutation,
+    known_integer_ascii_dec_mutation_then_buf,
     known_integer_ascii_hex_mutation,
+    known_integer_ascii_hex_mutation_then_buf,
     known_integer_ascii_hex_with_prefix_mutation,
     known_integer_packed_be_mutation,
     known_integer_packed_le_mutation,
+    known_integer_packed_le_mutation_then_buf,
+    known_integer_packed_be_mutation_then_buf
 )
 from fuzzer.mutations.repeated_parts import repeat_last_segment_mutation
 from fuzzer.mutations.format_specifiers import random_format_specifiers
@@ -18,10 +22,14 @@ from ..utils import round_robin, tag
 MUTATORS = [
     buffer_overflow_mutation,
     known_integer_ascii_dec_mutation,
+    known_integer_ascii_dec_mutation_then_buf,
     known_integer_ascii_hex_mutation,
+    known_integer_ascii_hex_mutation_then_buf,
     known_integer_ascii_hex_with_prefix_mutation,
     known_integer_packed_be_mutation,
     known_integer_packed_le_mutation,
+    known_integer_packed_le_mutation_then_buf,
+    known_integer_packed_be_mutation_then_buf,
     flip_byte_mutation,
     random_insert_null_mutation,
     repeat_last_segment_mutation,

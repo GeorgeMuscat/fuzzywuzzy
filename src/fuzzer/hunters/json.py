@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 from typing import Iterator
 from random import choice
 
@@ -46,7 +47,10 @@ LIST_MUTATORS = [
 
 def json_key_hunter(sample_input: bytes) -> Iterator[bytes]:
     """Runs each mutator on the keys of the sample_input, interpreted as json."""
-    parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    try:
+        parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    except JSONDecodeError:
+        return
     for key in parsed_json.keys():
         for mutated_key in round_robin([mutator(key.encode()) for mutator in MUTATORS]):
             mutated_json = parsed_json.copy()
@@ -60,7 +64,10 @@ def json_key_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 def json_number_value_hunter(sample_input: bytes) -> Iterator[bytes]:
     """Runs each mutator on the values of the sample_input, interpreted as json."""
-    parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    try:
+        parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    except JSONDecodeError:
+        return
     for key, value in parsed_json.items():
         mutated_json = parsed_json.copy()
         if not isinstance(value, int):
@@ -75,7 +82,10 @@ def json_number_value_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 def json_array_hunter(sample_input: bytes) -> Iterator[bytes]:
     """Runs each mutator on the values of the sample_input, interpreted as json."""
-    parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    try:
+        parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    except JSONDecodeError:
+        return
     for key, value in parsed_json.items():
         mutated_json = parsed_json.copy()
         if not isinstance(value, list):
@@ -89,7 +99,10 @@ def json_array_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 def json_value_hunter(sample_input: bytes) -> Iterator[bytes]:
     """Runs each mutator on the values of the sample_input, interpreted as json."""
-    parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    try:
+        parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    except JSONDecodeError:
+        return
     for key, value in parsed_json.items():
         mutated_json = parsed_json.copy()
         for mutated_value in round_robin([mutator(str(value).encode()) for mutator in MUTATORS]):
@@ -101,7 +114,10 @@ def json_value_hunter(sample_input: bytes) -> Iterator[bytes]:
 
 def json_key_remover(sample_input: bytes) -> Iterator[bytes]:
     """Just removes a key value pair from the json"""
-    parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    try:
+        parsed_json = json.loads(sample_input.decode().replace("'", '"'))
+    except JSONDecodeError:
+        return
     for key in parsed_json:
         mutated_json = parsed_json.copy()
         del mutated_json[key]

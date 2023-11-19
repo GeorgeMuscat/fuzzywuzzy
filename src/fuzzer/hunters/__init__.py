@@ -24,7 +24,7 @@ MIME_TYPE_TO_HUNTERS: dict[str, list[Hunter]] = {
         quantization_table_hunter,
         frame_hunter,
         huffman_hunter,
- #       image_hunter
+        image_hunter
     ],
     "application/json": [
         json_key_hunter,
