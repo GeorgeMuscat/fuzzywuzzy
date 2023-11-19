@@ -60,8 +60,7 @@ def round_robin(iterators: list[Iterator[T]]) -> Iterator[T]:
         try:
             yield next(it)
             idx += 1
-        except (StopIteration, RuntimeError):
-            # TODO: Fix segment_hunter properly so we aren't using RuntimeError as a bandaid.
+        except StopIteration:
             iterators.pop(idx)
             l -= 1
             if l == 0:
@@ -69,6 +68,19 @@ def round_robin(iterators: list[Iterator[T]]) -> Iterator[T]:
 
         if idx >= l:
             idx = 0
+
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+
+def tag(tag: T, iterator: Iterator[U]) -> Iterator[tuple[T, U]]:
+    """Tags each element from `iterator` with a fixed value `tag`. e.g. to identify it's source later."""
+    while True:
+        try:
+            yield (tag, next(iterator))
+        except StopIteration:
+            return
 
 
 class Reporter:
