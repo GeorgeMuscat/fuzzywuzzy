@@ -22,21 +22,21 @@ def event_id(event: tuple, depth: int):
     return "-".join(str(e) for e in event) + f"-{depth}"
 
 
-def get_lines(graph: CoverageGraph, parent_id: str, depth: int):
-    lines: list[str] = []
-    for event, child in graph.items():
-        id = event_id(event, depth)
-        lines.append(f'{id}["{display_event(event)}"]')
-        lines.append(f"{parent_id}-->{id}")
-        lines.extend(get_lines(child, id, depth + 1))
-
-    return lines
-
-
 def generate_mermaid_graph(
     graph: CoverageGraph, result: Optional[HarnessResult] = None
 ):
-    lines = get_lines(graph, "prog_start", 0)
+    lines: list[str] = []
+
+    graphs: list[tuple[CoverageGraph, str, int]] = [(graph, "prog_start", 0)]
+    
+    while len(graphs):
+        graph, parent_id, depth = graphs[0]
+        for event, child in graph.items():
+            id = event_id(event, depth)
+            lines.append(f'{id}["{display_event(event)}"]')
+            lines.append(f"{parent_id}-->{id}")
+            graphs.append((child, id, depth + 1))
+        graphs.pop(0)
 
     if result is not None:
         event_count = len(result["events"])
